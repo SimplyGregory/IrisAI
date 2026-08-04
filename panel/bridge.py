@@ -84,10 +84,29 @@ def _first_problem(text: str, limit: int = 160) -> str:
     return "failed"
 
 
-BROWSER_NOTE = (
-    "Use the browser for this - browser_open and the other browser tools - "
-    "rather than answering from memory.\n\n"
-)
+def browser_note() -> str:
+    """What "@browser:" should actually mean, given what is configured.
+
+    The token says "go and look this up rather than answering from memory".
+    How to look is a separate question, and driving Chrome is the expensive
+    answer: a window, a page load and several tool calls to read one fact.
+    With a search key that becomes one call that also returns its sources.
+
+    So the browser stops being the instruction and becomes the fallback - for
+    the things search genuinely cannot do, which is anything needing a click,
+    a login, or a page behind one.
+    """
+    if config.GEMINI_KEY:
+        return (
+            "Look this up rather than answering from memory. Reach for "
+            "web_search first: one call, and it comes back with its sources. "
+            "Use the browser tools only if you have to click, sign in, or read "
+            "something search cannot reach, and say which you used.\n\n"
+        )
+    return (
+        "Use the browser for this - browser_open and the other browser tools - "
+        "rather than answering from memory.\n\n"
+    )
 
 # Openers that say nothing about what the conversation turned out to be about.
 # One of these gets skipped and the next message names the conversation instead.
@@ -675,7 +694,7 @@ class Api:
 
         parts = []
         if browsing:
-            parts.append(BROWSER_NOTE)
+            parts.append(browser_note())
         parts.append(body)
         if attachments:
             parts.append(

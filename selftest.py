@@ -327,6 +327,20 @@ def vscode_bridge():
     return f"extension {installed}, {len(live)} window(s), ping -> VS Code {got.get('vscode')}"
 
 
+def web_search_ready():
+    from iris import config, gemini
+
+    if not config.GEMINI_KEY:
+        raise Skip("no Gemini key - web search is off; fetch_url still works")
+
+    found = gemini.search("What year is it? Answer in one word.")
+    answer = found["answer"].strip().splitlines()[0][:60]
+    return "\n".join([
+        f"key works, Google answered: {answer}",
+        f"{len(found['sources'])} source(s) cited",
+    ])
+
+
 def roku_connection():
     from iris import config, roku
 
@@ -466,6 +480,7 @@ def main() -> int:
     check("fetching a url        ", network_fetch)
     check("browser               ", browser_available)
     check("vs code bridge        ", vscode_bridge)
+    check("web search (gemini)   ", web_search_ready)
     check("roku                  ", roku_connection)
 
     print("\nThe panel")
