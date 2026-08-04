@@ -7,7 +7,7 @@
  */
 
 const $ = (id) => document.getElementById(id);
-const LAST = 4;          // five steps, and then it is installed and gone
+const LAST = 5;          // six steps, and then it is installed and gone
 let at = 0;
 let choices = {};
 let options = {};
@@ -47,7 +47,38 @@ function collect() {
     real_chrome_profile: $("real_chrome_profile").classList.contains("on"),
     cdp_port: Number($("cdp_port").value),
     vscode: $("vscode").classList.contains("on"),
+    roku: $("roku").classList.contains("on"),
+    roku_ip: chosenRoku,
   };
+}
+
+/* --- finding the Roku ---------------------------------------------------- */
+
+let chosenRoku = "";
+
+async function findRokus() {
+  const host = $("roku_devices");
+  host.innerHTML = '<p class="hint">Searching the network...</p>';
+  const found = await pywebview.api.find_rokus();
+
+  if (!found.length) {
+    host.innerHTML =
+      '<p class="hint">No Roku answered. Check it is on the same network, and that ' +
+      '"Control by mobile apps" is enabled under Settings, System, Advanced system ' +
+      'settings on the television.</p>';
+    chosenRoku = "";
+    return;
+  }
+
+  // Picked from a list rather than typed: nobody knows their television's IP,
+  // and one wrong digit is a failure that looks like the feature is broken.
+  radioList(
+    host,
+    found.map((r) => [r.ip, r.name || "Roku", `${r.ip}${r.model ? " - " + r.model : ""}`]),
+    found[0].ip,
+    (ip) => (chosenRoku = ip),
+  );
+  chosenRoku = found[0].ip;
 }
 
 /* --- building the pickers ------------------------------------------------ */
@@ -91,6 +122,12 @@ document.querySelectorAll(".switch").forEach((sw) => {
   sw.onclick = () => {
     const on = sw.classList.toggle("on");
     sw.setAttribute("aria-checked", String(on));
+    if (sw.id === "roku") {
+      $("roku-fields").hidden = !on;
+      // Only when switched on: an SSDP sweep on every wizard load would delay
+      // the first screen for something most people will not turn on.
+      if (on && !chosenRoku) findRokus();
+    }
   };
 });
 
@@ -119,6 +156,8 @@ document.querySelectorAll("[data-browse-folder]").forEach((button) => {
     if (picked) $(button.dataset.browseFolder).value = picked;
   };
 });
+
+$("roku_rescan").onclick = () => findRokus();
 
 /* --- moving between steps ------------------------------------------------ */
 

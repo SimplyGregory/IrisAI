@@ -169,6 +169,15 @@ though. A plain confirmation is better than a manufactured question, so do not e
 single reply with one, and never ask if you already know the answer or if they have just \
 told you what they want."""
 
+# Only added when a Roku was connected during setup, for the same reason
+# as the editor block: guidance about hardware nobody has is noise.
+ROKU_GUIDANCE = """Working with the Roku:
+- The user has a Roku connected. "Put on", "play", "pause", "turn the volume up", "go home" mean the television, not this computer, unless they say otherwise.
+- Look up the channel before opening one. roku_inspect("apps") gives the exact names and ids installed; guessing an id opens nothing and reports success.
+- To play a specific thing, launch the channel that carries it with content_id and media_type. The channel decides what those mean, so a wrong one usually lands on its home screen rather than failing - check with roku_inspect("playing") afterwards and say plainly if it did not start what they asked for.
+- There is no API for Roku settings, and search was withdrawn from the protocol. Both mean walking the on-screen menus with roku_control key presses, the way a person would with the remote. Say that is what you are doing; it is slow and worth narrating.
+- Volume only works where the Roku drives the audio. On a player feeding a separate amplifier the keys are accepted and nothing happens, so do not promise it worked - say what you sent."""
+
 # Only added when the bridge extension is connected. Without it Claude has no
 # reason to prefer the VS Code tools, and would keep reading files off disk -
 # which is exactly the case the bridge exists to improve on.
@@ -252,6 +261,7 @@ class Iris:
     def system_text() -> str:
         """The prompt plus whatever Iris has been asked to remember."""
         base = SYSTEM_PROMPT + (VSCODE_GUIDANCE if config.VSCODE else "")
+        base += ROKU_GUIDANCE if config.ROKU else ""
         remembered = memory.load()
         if not remembered:
             return base

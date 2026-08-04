@@ -29,6 +29,8 @@ DEFAULTS = {
     "real_chrome_profile": False,
     "cdp_port": 9222,
     "vscode": False,
+    "roku": False,
+    "roku_ip": "",
 }
 
 MODELS = [
@@ -112,6 +114,18 @@ IRIS_CDP_PORT={c["cdp_port"]}
 # 0 = off, and the two VS Code tools are not loaded at all - so they cost
 #     nothing on a machine that does not use them.
 IRIS_VSCODE={1 if c["vscode"] else 0}
+
+
+# --- Television ------------------------------------------------------------
+# 1 = a Roku on the local network is connected, so Iris can open channels,
+#     play and pause, change the volume and press remote keys. Nothing is
+#     installed on the television; every Roku already answers on port 8060.
+# 0 = off, and the two Roku tools are not loaded at all.
+IRIS_ROKU={1 if c["roku"] else 0}
+
+# Which one, found by the wizard. If the router later hands it a different
+# address, run setup again rather than guessing.
+IRIS_ROKU_IP={c["roku_ip"]}
 
 
 # --- Panel -----------------------------------------------------------------

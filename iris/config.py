@@ -79,6 +79,16 @@ MEMORY_FILE = _env("IRIS_MEMORY", "memory.json")
 # that do not use it. Turned on by the setup wizard.
 VSCODE = _env("IRIS_VSCODE", "0") == "1"
 
+# --- the television --------------------------------------------------------
+# A Roku on the local network, reached over its External Control Protocol.
+# Nothing is installed on the television: every Roku serves this already. Off
+# means the two Roku tools are not registered, so they cost nothing here.
+ROKU = _env("IRIS_ROKU", "0") == "1"
+
+# Found by the setup wizard, which asks the network rather than the user. Worth
+# re-running setup if the router hands it a different address later.
+ROKU_IP = _env("IRIS_ROKU_IP", "")
+
 # --- paths ---------------------------------------------------------------
 STATE_DIR = Path.home() / ".iris"
 STATE_DIR.mkdir(exist_ok=True)

@@ -327,6 +327,24 @@ def vscode_bridge():
     return f"extension {installed}, {len(live)} window(s), ping -> VS Code {got.get('vscode')}"
 
 
+def roku_connection():
+    from iris import config, roku
+
+    if not config.ROKU:
+        raise Skip("no Roku connected - the wizard can find one")
+    if not config.ROKU_IP:
+        raise Skip("connected but no address saved; run setup again")
+
+    info = roku.device_info(config.ROKU_IP)
+    channels = roku.apps(config.ROKU_IP)
+    name = info.get("user-device-name") or info.get("model-name", "?")
+    return "\n".join([
+        f"{name} at {config.ROKU_IP}",
+        f"{info.get('model-name', '?')}, software {info.get('software-version', '?')}",
+        f"{len(channels)} channel(s) installed, screen {info.get('power-mode', '?')}",
+    ])
+
+
 def panel_geometry():
     import chrome
 
@@ -448,6 +466,7 @@ def main() -> int:
     check("fetching a url        ", network_fetch)
     check("browser               ", browser_available)
     check("vs code bridge        ", vscode_bridge)
+    check("roku                  ", roku_connection)
 
     print("\nThe panel")
     check("panel modules         ", panel_modules)

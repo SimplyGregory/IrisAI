@@ -88,6 +88,30 @@ class Api:
 
         return ""
 
+    def find_rokus(self) -> list[dict]:
+        """Every Roku on the network, for the page to offer as a choice.
+
+        Called from the page rather than at startup: it is a multicast sweep
+        with a timeout, and delaying the first screen of setup for a feature
+        most people will not switch on is the wrong trade.
+        """
+        from iris import roku
+
+        try:
+            found = roku.discover(timeout=4.0)
+        except Exception:
+            return []
+
+        listed = []
+        for device in found:
+            model = ""
+            try:
+                model = roku.device_info(device["ip"]).get("model-name", "")
+            except Exception:
+                pass  # it answered discovery; a model name is a nicety
+            listed.append({"ip": device["ip"], "name": device["name"], "model": model})
+        return listed
+
     def install(self, answers: dict) -> dict:
         problem = setup.validate(answers)
         if problem:
