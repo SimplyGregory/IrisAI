@@ -32,6 +32,15 @@ class SearchUnavailable(Exception):
     """No key, or Google would not answer."""
 
 
+class NoSearchQuota(SearchUnavailable):
+    """The key works, the model works, and grounding is not included.
+
+    Told apart from real rate limiting by asking the same model a question
+    without the search tool. Google reports both as 429, and the difference is
+    the whole of whether waiting helps.
+    """
+
+
 class RateLimited(SearchUnavailable):
     """Google took the key and refused on quota.
 
@@ -92,6 +101,24 @@ def search(question: str) -> dict:
                 f"free one comes from aistudio.google.com. ({message})"
             ) from exc
         if exc.code == 429:
+            # Google says "quota exceeded" both for going too fast and for
+            # having no allowance at all, and the difference decides whether
+            # waiting is worth anything. Asking the same model to answer
+            # WITHOUT search separates them: if that works, the key and the
+            # model are fine and it is grounding specifically that is not
+            # included - which no amount of waiting will change.
+            if _answers_without_search():
+                raise NoSearchQuota(
+                    "This Google key has no quota for Search grounding, which is "
+                    "what web search needs. The key and the model are fine - the "
+                    "same model answers normally without search - so this is not "
+                    "a pace you can wait out.\n"
+                    "Grounding is a billed feature: enabling billing on the "
+                    "project at aistudio.google.com turns it on, and searches "
+                    "are charged individually.\n"
+                    "Until then fetch_url still reads any page whose address is "
+                    "known, which covers most lookups."
+                ) from exc
             raise RateLimited(
                 "Google is rate limiting this key, so this search did not run. "
                 "The key itself is fine - a quota refusal happens after it has "
@@ -122,6 +149,31 @@ def search(question: str) -> dict:
         raise SearchUnavailable(f"Could not reach Google: {type(exc).__name__}") from exc
 
     return _read(body)
+
+
+def _answers_without_search() -> bool:
+    """Can this key use the model at all, with search switched off?
+
+    The cheapest possible question, on the older generateContent endpoint,
+    which is the one that answers without grounding. A yes here means the 429
+    was about the search feature and not about the key, the model or the pace.
+    """
+    from iris import config
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{config.GEMINI_MODEL}:generateContent"
+    )
+    payload = json.dumps({"contents": [{"parts": [{"text": "ok"}]}]}).encode("utf-8")
+    request = urllib.request.Request(
+        url, data=payload, method="POST",
+        headers={"x-goog-api-key": config.GEMINI_KEY, "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20):
+            return True
+    except Exception:  # noqa: BLE001 - a no here just means we cannot tell
+        return False
 
 
 def available_models(key: str = "") -> list[str]:

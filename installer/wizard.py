@@ -143,6 +143,11 @@ class Api:
         config.GEMINI_KEY = key
         try:
             found = gemini.search("What year is it? Answer in one word.")
+        except gemini.NoSearchQuota as exc:
+            # Not a pass. The key is real but the one feature it was wanted for
+            # is not included, and saying "valid" here would be true and
+            # useless - searching would fail every time afterwards.
+            return str(exc)
         except gemini.RateLimited:
             # The question here is only whether the key is good, and this
             # answers it: a quota refusal comes after authentication, so

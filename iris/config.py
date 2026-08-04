@@ -90,7 +90,7 @@ GEMINI_KEY = _env("IRIS_GEMINI_KEY", "").strip()
 # not reach every model, and Google answers "no quota for this" with the same
 # 429 it uses for genuine rate limiting - so if searching is refused straight
 # away rather than after a burst, trying a smaller model here is the fix.
-GEMINI_MODEL = _env("IRIS_GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = _env("IRIS_GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.

@@ -128,7 +128,7 @@ IRIS_GEMINI_KEY={c["gemini_key"]}
 # Google says "no quota for this" with the same 429 it uses for real rate
 # limiting - so if search is refused immediately rather than after a burst,
 # try another here.
-IRIS_GEMINI_MODEL=gemini-3.6-flash
+IRIS_GEMINI_MODEL=gemini-3.5-flash-lite
 
 
 # --- Television ------------------------------------------------------------
