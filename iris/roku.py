@@ -127,15 +127,18 @@ def _request(ip: str, path: str, method: str = "GET") -> str:
         if exc.code == 403:
             raise RokuRefused(
                 "The Roku answered but refused the command. It is online and "
-                "reachable - only control is being turned away.\n"
-                "This is its network access setting: Settings, System, Advanced "
-                "system settings, Control by mobile apps. It has four levels, and "
-                "the two middle ones behave differently for different callers - so "
-                "the official Roku phone app working does not mean this is open. "
-                "Set it to Default or Permissive.\n"
-                "If it is already, say so rather than repeating this advice: the "
-                "refusal would then be coming from whatever is on screen, and the "
-                "answer is to try again from the home screen."
+                "reachable - only control is being turned away, which is a "
+                "setting on the television and not a network problem.\n"
+                "On the Roku: Settings > System > Advanced system settings > "
+                "Control by mobile apps > Network access. Set it to Enabled "
+                "(older software calls it Permissive). Recent Roku software "
+                "ships this as Limited, which refuses exactly this.\n"
+                "The user's phone controlling the Roku does not mean it is "
+                "already set: Limited still allows Roku's own app and turns "
+                "away everything else. Say that, rather than concluding the "
+                "setting must be fine.\n"
+                "This needs the physical remote - the menus cannot be walked "
+                "with key presses when key presses are what is being refused."
             ) from exc
         if exc.code == 400:
             raise RokuRefused(
