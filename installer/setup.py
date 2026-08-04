@@ -124,6 +124,12 @@ IRIS_VSCODE={1 if c["vscode"] else 0}
 # she can still read any page whose address she already knows.
 IRIS_GEMINI_KEY={c["gemini_key"]}
 
+# Which model does the searching. A free key does not reach every model, and
+# Google says "no quota for this" with the same 429 it uses for real rate
+# limiting - so if search is refused immediately rather than after a burst,
+# try another here.
+IRIS_GEMINI_MODEL=gemini-2.5-flash
+
 
 # --- Television ------------------------------------------------------------
 # 1 = a Roku on the local network is connected, so Iris can open channels,

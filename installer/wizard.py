@@ -143,6 +143,17 @@ class Api:
         config.GEMINI_KEY = key
         try:
             found = gemini.search("What year is it? Answer in one word.")
+        except gemini.RateLimited:
+            # The question here is only whether the key is good, and this
+            # answers it: a quota refusal comes after authentication, so
+            # Google accepted the key and then declined the work. Reporting
+            # that as a failure would have people rechecking a key that is
+            # already right.
+            return (
+                "The key is valid - Google accepted it and then refused on "
+                "quota, which is a rate limit rather than a problem with the "
+                "key. Searching will work once the limit clears."
+            )
         except gemini.SearchUnavailable as exc:
             return str(exc)
         except Exception as exc:  # noqa: BLE001 - a wizard never raises at the page

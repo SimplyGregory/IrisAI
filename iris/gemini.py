@@ -23,12 +23,20 @@ import urllib.error
 import urllib.request
 
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
-MODEL = "gemini-3.6-flash"  # the cheap fast one; grounding is the point, not the model
 TIMEOUT = 45.0
 
 
 class SearchUnavailable(Exception):
     """No key, or Google would not answer."""
+
+
+class RateLimited(SearchUnavailable):
+    """Google took the key and refused on quota.
+
+    Worth separating, because it is the one failure that proves the key is
+    good: the request got past authentication and was turned down for how much
+    is being asked, not for who is asking. Setup should read that as a pass.
+    """
 
 
 def configured() -> bool:
@@ -51,8 +59,10 @@ def _key() -> str:
 
 def search(question: str) -> dict:
     """Ask Google a question. Returns {"answer": str, "sources": [{title, url}]}."""
+    from iris import config
+
     payload = json.dumps({
-        "model": MODEL,
+        "model": config.GEMINI_MODEL,
         "input": question,
         # The whole reason for being here. Without this it is just another
         # language model answering from memory, which Iris already has.
@@ -80,9 +90,12 @@ def search(question: str) -> dict:
                 f"free one comes from aistudio.google.com. ({message})"
             ) from exc
         if exc.code == 429:
-            raise SearchUnavailable(
-                "Google is rate limiting this key. Wait a moment, or use "
-                "fetch_url if the address is already known."
+            raise RateLimited(
+                "Google is rate limiting this key, so this search did not run. "
+                "The key itself is fine - a quota refusal happens after it has "
+                "been accepted. Wait a moment and try again, or use fetch_url "
+                "if the address is already known."
+                + (f" ({message})" if message else "")
             ) from exc
         raise SearchUnavailable(
             f"Google returned HTTP {exc.code}." + (f" {message}" if message else "")

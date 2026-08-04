@@ -86,6 +86,12 @@ VSCODE = _env("IRIS_VSCODE", "0") == "1"
 # fetch_url remains the way to read a page whose address is already known.
 GEMINI_KEY = _env("IRIS_GEMINI_KEY", "").strip()
 
+# Which Gemini model does the searching. Adjustable because a free key does
+# not reach every model, and Google answers "no quota for this" with the same
+# 429 it uses for genuine rate limiting - so if searching is refused straight
+# away rather than after a burst, trying a smaller model here is the fix.
+GEMINI_MODEL = _env("IRIS_GEMINI_MODEL", "gemini-2.5-flash")
+
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.
 # Nothing is installed on the television: every Roku serves this already. Off
