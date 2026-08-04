@@ -74,11 +74,34 @@ async function findRokus() {
   // and one wrong digit is a failure that looks like the feature is broken.
   radioList(
     host,
-    found.map((r) => [r.ip, r.name || "Roku", `${r.ip}${r.model ? " - " + r.model : ""}`]),
+    found.map((r) => [
+      r.ip,
+      (r.name || "Roku") + (r.controllable ? "" : "  -  control is off"),
+      `${r.ip}${r.model ? " - " + r.model : ""}`,
+    ]),
     found[0].ip,
-    (ip) => (chosenRoku = ip),
+    (ip) => {
+      chosenRoku = ip;
+      showRokuProblem(found.find((r) => r.ip === ip));
+    },
   );
   chosenRoku = found[0].ip;
+  showRokuProblem(found[0]);
+}
+
+/* A Roku answers questions whether or not it accepts commands, so one that is
+ * locked down looks identical here until something is asked of it. Saying so
+ * during setup - with the menu path - beats finding out later when a request
+ * quietly does nothing. It is not a blocker: the address is saved either way,
+ * and switching the setting on afterwards needs no further setup. */
+function showRokuProblem(device) {
+  const note = $("roku_problem");
+  if (!device || device.controllable) {
+    note.hidden = true;
+    return;
+  }
+  note.hidden = false;
+  note.textContent = device.problem;
 }
 
 /* --- building the pickers ------------------------------------------------ */

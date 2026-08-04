@@ -278,6 +278,41 @@ def find_app(ip: str, name: str) -> dict | None:
     return None
 
 
+BLOCKED_ADVICE = (
+    "Control is turned off on this Roku. On the television:\n"
+    "  Settings > System > Advanced system settings > Control by mobile apps\n"
+    "  > Network access > Enabled   (older software calls it Permissive)\n"
+    "Recent Roku software ships this as Limited, which refuses outside control.\n"
+    "Your phone controlling the Roku does not mean it is already on: Limited "
+    "still allows Roku's own app and turns everything else away.\n"
+    "This needs the physical remote - the menus cannot be walked with key "
+    "presses while key presses are the thing being refused."
+)
+
+
+def can_control(ip: str) -> tuple[bool, str]:
+    """Whether this Roku will accept commands, and what to do if it will not.
+
+    Worth knowing before the user finds out mid-sentence. Queries always work,
+    so a Roku that answers everything and then refuses every action looks
+    broken rather than switched off - which is exactly how it was reported.
+
+    Probes with Lit_ and a space: a real keypress, so it goes through the same
+    permission check a command would, but it only types anything when an
+    on-screen keyboard happens to be focused, and a space at that. Testing with
+    Home would answer the question by yanking someone out of their programme,
+    and an invalid key name is no test at all - the name is validated first, so
+    it comes back 400 without the permission ever being consulted.
+    """
+    try:
+        _request(ip, "keypress/Lit_%20", method="POST")
+        return True, "control accepted"
+    except RokuRefused as exc:
+        return False, str(exc)
+    except RokuUnavailable as exc:
+        return False, str(exc)
+
+
 def is_awake(ip: str) -> bool:
     """Whether the screen is on. Roku TVs report this; players do not."""
     try:

@@ -109,7 +109,19 @@ class Api:
                 model = roku.device_info(device["ip"]).get("model-name", "")
             except Exception:
                 pass  # it answered discovery; a model name is a nicety
-            listed.append({"ip": device["ip"], "name": device["name"], "model": model})
+
+            # Asked here rather than left for the first command to discover.
+            # Recent Roku software refuses outside control by default, so a
+            # device can answer every question and then take no instruction -
+            # which reads as the feature being broken rather than switched off.
+            works, why = roku.can_control(device["ip"])
+            listed.append({
+                "ip": device["ip"],
+                "name": device["name"],
+                "model": model,
+                "controllable": works,
+                "problem": "" if works else why,
+            })
         return listed
 
     def install(self, answers: dict) -> dict:
