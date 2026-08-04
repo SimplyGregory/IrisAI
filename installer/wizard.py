@@ -126,61 +126,6 @@ class Api:
             })
         return listed
 
-    def check_gemini_key(self, key: str) -> str:
-        """Try the key against Google and say plainly whether it works.
-
-        A mistyped key is the likely mistake here, and Google reports one as a
-        bare 400 - so without this, the first search someone tries fails for a
-        reason they cannot see, long after they have forgotten typing it.
-        """
-        key = (key or "").strip()
-        if not key:
-            return "No key, so web search will not be offered. Everything else works."
-
-        from iris import config, gemini
-
-        was = config.GEMINI_KEY
-        config.GEMINI_KEY = key
-        try:
-            found = gemini.search("What year is it? Answer in one word.")
-        except gemini.NoSearchQuota as exc:
-            # Not a pass. The key is real but the one feature it was wanted for
-            # is not included, and saying "valid" here would be true and
-            # useless - searching would fail every time afterwards.
-            return str(exc)
-        except gemini.RateLimited:
-            # The question here is only whether the key is good, and this
-            # answers it: a quota refusal comes after authentication, so
-            # Google accepted the key and then declined the work. Reporting
-            # that as a failure would have people rechecking a key that is
-            # already right.
-            return (
-                "The key is valid - Google accepted it and then refused on "
-                "quota, which is a rate limit rather than a problem with the "
-                "key. Searching will work once the limit clears."
-            )
-        except gemini.SearchUnavailable as exc:
-            # Whatever went wrong, if the key itself is good enough to list
-            # models then say which ones it can use. Google retires models for
-            # new keys while keeping them for existing ones, so the default
-            # here cannot be right for everybody, and "pick one of these" is a
-            # far better answer than a model name the reader cannot check.
-            usable = gemini.available_models(key)
-            if usable and config.GEMINI_MODEL not in usable:
-                return (
-                    f"{exc}\n\nThe key works, but {config.GEMINI_MODEL} is not one "
-                    f"it can use. Available: {', '.join(usable[:6])}. Set "
-                    f"IRIS_GEMINI_MODEL in .env to {usable[0]}."
-                )
-            return str(exc)
-        except Exception as exc:  # noqa: BLE001 - a wizard never raises at the page
-            return f"Could not check the key: {type(exc).__name__}"
-        finally:
-            config.GEMINI_KEY = was
-
-        sources = len(found.get("sources", []))
-        return f"The key works. Google answered, citing {sources} source(s)."
-
     def install(self, answers: dict) -> dict:
         problem = setup.validate(answers)
         if problem:

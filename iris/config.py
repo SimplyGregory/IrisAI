@@ -79,19 +79,6 @@ MEMORY_FILE = _env("IRIS_MEMORY", "memory.json")
 # that do not use it. Turned on by the setup wizard.
 VSCODE = _env("IRIS_VSCODE", "0") == "1"
 
-# --- searching the web -----------------------------------------------------
-# A Google AI Studio key, which enables web_search: Gemini does the searching
-# and the reading and hands back an answer with its sources. Free keys come
-# from aistudio.google.com. Blank means the tool is not registered at all, and
-# fetch_url remains the way to read a page whose address is already known.
-GEMINI_KEY = _env("IRIS_GEMINI_KEY", "").strip()
-
-# Which Gemini model does the searching. Adjustable because a free key does
-# not reach every model, and Google answers "no quota for this" with the same
-# 429 it uses for genuine rate limiting - so if searching is refused straight
-# away rather than after a burst, trying a smaller model here is the fix.
-GEMINI_MODEL = _env("IRIS_GEMINI_MODEL", "gemini-3.5-flash-lite")
-
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.
 # Nothing is installed on the television: every Roku serves this already. Off
