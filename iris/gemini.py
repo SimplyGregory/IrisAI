@@ -1,0 +1,155 @@
+"""Asking Google, through Gemini's search grounding.
+
+Iris could already fetch a page she knew the address of. What she could not do
+was find one. The obvious answer - scrape a search engine - is what she had,
+and it is poor: DuckDuckGo answers a scripted request with a bot challenge, and
+when it does answer, the readable text is mostly its country list with the
+results buried in markup.
+
+Gemini's grounding does the searching and the reading, and hands back an answer
+with the sources it used. One call instead of a search page, three fetches and
+a guess at which result was the real one.
+
+Optional, and off unless a key is configured. Nothing else in Iris depends on
+it - fetch_url remains the route for a page whose address is already known,
+which is most of them, and costs nobody an API key.
+
+Unverified: written against Google's documentation. Their endpoint has moved
+before and the response shape below is read defensively for that reason.
+"""
+
+import json
+import urllib.error
+import urllib.request
+
+ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
+MODEL = "gemini-3.6-flash"  # the cheap fast one; grounding is the point, not the model
+TIMEOUT = 45.0
+
+
+class SearchUnavailable(Exception):
+    """No key, or Google would not answer."""
+
+
+def configured() -> bool:
+    from iris import config
+
+    return bool(config.GEMINI_KEY)
+
+
+def _key() -> str:
+    from iris import config
+
+    if not config.GEMINI_KEY:
+        raise SearchUnavailable(
+            "No Google API key is set, so web search is not available. A free "
+            "key comes from aistudio.google.com; put it in .env as "
+            "IRIS_GEMINI_KEY, or run setup again."
+        )
+    return config.GEMINI_KEY
+
+
+def search(question: str) -> dict:
+    """Ask Google a question. Returns {"answer": str, "sources": [{title, url}]}."""
+    payload = json.dumps({
+        "model": MODEL,
+        "input": question,
+        # The whole reason for being here. Without this it is just another
+        # language model answering from memory, which Iris already has.
+        "tools": [{"type": "google_search"}],
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        ENDPOINT,
+        data=payload,
+        method="POST",
+        headers={"x-goog-api-key": _key(), "Content-Type": "application/json"},
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            body = json.loads(response.read().decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as exc:
+        message, reason = _error_detail(exc)
+        # A rejected key comes back 400, not 401 or 403 - it is reported as a
+        # bad argument rather than as a refusal. Checked against the live API,
+        # because assuming the usual codes gave "HTTP 400" and no reason.
+        if reason == "API_KEY_INVALID" or exc.code in (401, 403):
+            raise SearchUnavailable(
+                "Google rejected the API key. Check IRIS_GEMINI_KEY in .env - a "
+                f"free one comes from aistudio.google.com. ({message})"
+            ) from exc
+        if exc.code == 429:
+            raise SearchUnavailable(
+                "Google is rate limiting this key. Wait a moment, or use "
+                "fetch_url if the address is already known."
+            ) from exc
+        raise SearchUnavailable(
+            f"Google returned HTTP {exc.code}." + (f" {message}" if message else "")
+        ) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise SearchUnavailable(f"Could not reach Google: {type(exc).__name__}") from exc
+
+    return _read(body)
+
+
+def _error_detail(exc: urllib.error.HTTPError) -> tuple[str, str]:
+    """The message and machine-readable reason out of a Google error body.
+
+    Which arrives wrapped in a list - [{"error": {...}}] - not as the bare
+    object the shape suggests. Reading it as an object silently produced no
+    detail at all, so a rejected key reported itself as a naked "HTTP 400".
+    """
+    try:
+        body = json.loads(exc.read().decode("utf-8", "replace"))
+    except Exception:  # noqa: BLE001 - the status alone is still something
+        return "", ""
+
+    if isinstance(body, list):
+        body = body[0] if body else {}
+    error = body.get("error", {}) if isinstance(body, dict) else {}
+
+    reason = ""
+    for detail in error.get("details", []) or []:
+        if isinstance(detail, dict) and detail.get("reason"):
+            reason = detail["reason"]
+            break
+    return str(error.get("message", "")), reason
+
+
+def _read(body: dict) -> dict:
+    """Pull the answer and its sources out, whatever shape they arrived in.
+
+    Written to survive the response moving: every field is looked for rather
+    than indexed into, and a missing one costs the citations rather than the
+    answer. Google has reorganised this API before.
+    """
+    answer_parts: list[str] = []
+    sources: list[dict] = []
+    seen: set[str] = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            text = node.get("text")
+            if isinstance(text, str) and text.strip():
+                answer_parts.append(text)
+            # Citations travel as url_citation annotations beside the text.
+            url = node.get("url") or node.get("uri")
+            if isinstance(url, str) and url.startswith("http") and url not in seen:
+                seen.add(url)
+                sources.append({"title": str(node.get("title") or "").strip(), "url": url})
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(body)
+
+    answer = "\n".join(dict.fromkeys(answer_parts)).strip()
+    if not answer:
+        raise SearchUnavailable(
+            "Google answered but with nothing readable in it. The response "
+            "shape may have changed."
+        )
+    return {"answer": answer, "sources": sources[:8]}

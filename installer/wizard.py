@@ -126,6 +126,33 @@ class Api:
             })
         return listed
 
+    def check_gemini_key(self, key: str) -> str:
+        """Try the key against Google and say plainly whether it works.
+
+        A mistyped key is the likely mistake here, and Google reports one as a
+        bare 400 - so without this, the first search someone tries fails for a
+        reason they cannot see, long after they have forgotten typing it.
+        """
+        key = (key or "").strip()
+        if not key:
+            return "No key, so web search will not be offered. Everything else works."
+
+        from iris import config, gemini
+
+        was = config.GEMINI_KEY
+        config.GEMINI_KEY = key
+        try:
+            found = gemini.search("What year is it? Answer in one word.")
+        except gemini.SearchUnavailable as exc:
+            return str(exc)
+        except Exception as exc:  # noqa: BLE001 - a wizard never raises at the page
+            return f"Could not check the key: {type(exc).__name__}"
+        finally:
+            config.GEMINI_KEY = was
+
+        sources = len(found.get("sources", []))
+        return f"The key works. Google answered, citing {sources} source(s)."
+
     def install(self, answers: dict) -> dict:
         problem = setup.validate(answers)
         if problem:

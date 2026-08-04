@@ -79,6 +79,13 @@ MEMORY_FILE = _env("IRIS_MEMORY", "memory.json")
 # that do not use it. Turned on by the setup wizard.
 VSCODE = _env("IRIS_VSCODE", "0") == "1"
 
+# --- searching the web -----------------------------------------------------
+# A Google AI Studio key, which enables web_search: Gemini does the searching
+# and the reading and hands back an answer with its sources. Free keys come
+# from aistudio.google.com. Blank means the tool is not registered at all, and
+# fetch_url remains the way to read a page whose address is already known.
+GEMINI_KEY = _env("IRIS_GEMINI_KEY", "").strip()
+
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.
 # Nothing is installed on the television: every Roku serves this already. Off

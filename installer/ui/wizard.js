@@ -49,6 +49,7 @@ function collect() {
     vscode: $("vscode").classList.contains("on"),
     roku: $("roku").classList.contains("on"),
     roku_ip: chosenRoku,
+    gemini_key: $("gemini_key").value.trim(),
   };
 }
 
@@ -181,6 +182,20 @@ document.querySelectorAll("[data-browse-folder]").forEach((button) => {
 });
 
 $("roku_rescan").onclick = () => findRokus();
+
+/* Checked here rather than left to fail later. A mistyped key is the likely
+ * mistake, and Google reports a bad one as a plain 400 - so without this the
+ * first search someone tries just says no for reasons they cannot see. */
+$("gemini_test").onclick = async () => {
+  const key = $("gemini_key").value.trim();
+  const note = $("gemini_hint");
+  if (!key) {
+    note.textContent = "No key, so web search will not be offered. Everything else works.";
+    return;
+  }
+  note.textContent = "Checking with Google...";
+  note.textContent = await pywebview.api.check_gemini_key(key);
+};
 
 /* --- moving between steps ------------------------------------------------ */
 

@@ -31,6 +31,7 @@ DEFAULTS = {
     "vscode": False,
     "roku": False,
     "roku_ip": "",
+    "gemini_key": "",
 }
 
 MODELS = [
@@ -114,6 +115,14 @@ IRIS_CDP_PORT={c["cdp_port"]}
 # 0 = off, and the two VS Code tools are not loaded at all - so they cost
 #     nothing on a machine that does not use them.
 IRIS_VSCODE={1 if c["vscode"] else 0}
+
+
+# --- Web search ------------------------------------------------------------
+# A Google AI Studio key. With one, Iris can search the web and get an answer
+# with its sources, instead of guessing at addresses. Free from
+# aistudio.google.com. Blank means the web_search tool is not loaded at all -
+# she can still read any page whose address she already knows.
+IRIS_GEMINI_KEY={c["gemini_key"]}
 
 
 # --- Television ------------------------------------------------------------

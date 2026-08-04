@@ -8,16 +8,25 @@ of shipping every schema every time.
 
 from iris import confirm as _confirm
 from iris import editor as _editor
+from iris import gemini as _gemini
 from iris import roku as _roku
 from iris.redact import bind_variables
 from iris.tools import (
     apps, browser, files, info, interaction, mic, myself, recall, roku, screen,
-    shell, uia, vscode, windows,
+    search, shell, uia, vscode, windows,
 )
 
 # reveal_redacted takes a placeholder as its *subject*, so resolving its
 # argument would hand it the answer and leave it looking the value up by itself.
-_NO_VARIABLE_BINDING = {"reveal_redacted"}
+_NO_VARIABLE_BINDING = {
+    "reveal_redacted",
+    # web_search sends its argument to Google. Everywhere else, resolving
+    # [email 1] back to the real address is the point - the value reaches a
+    # local tool and never the network. Here it would leave the machine
+    # entirely, to a third party, which is the exact thing redaction exists to
+    # prevent. So the placeholder travels as those literal characters.
+    "web_search",
+}
 
 
 def _gated(tool):
@@ -77,6 +86,8 @@ ALL_TOOLS = [
         # Same bargain as the editor above: two schemas on every request is
         # not worth carrying for someone who owns no Roku.
         *(roku.TOOLS if _roku.enabled() else []),
+        # Needs a Google API key, so most installs will not have it.
+        *(search.TOOLS if _gemini.configured() else []),
     ]
 ]
 
@@ -93,6 +104,7 @@ __all__ = [
     "screen",
     "shell",
     "roku",
+    "search",
     "uia",
     "vscode",
     "windows",
