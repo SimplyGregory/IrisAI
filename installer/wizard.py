@@ -155,6 +155,18 @@ class Api:
                 "key. Searching will work once the limit clears."
             )
         except gemini.SearchUnavailable as exc:
+            # Whatever went wrong, if the key itself is good enough to list
+            # models then say which ones it can use. Google retires models for
+            # new keys while keeping them for existing ones, so the default
+            # here cannot be right for everybody, and "pick one of these" is a
+            # far better answer than a model name the reader cannot check.
+            usable = gemini.available_models(key)
+            if usable and config.GEMINI_MODEL not in usable:
+                return (
+                    f"{exc}\n\nThe key works, but {config.GEMINI_MODEL} is not one "
+                    f"it can use. Available: {', '.join(usable[:6])}. Set "
+                    f"IRIS_GEMINI_MODEL in .env to {usable[0]}."
+                )
             return str(exc)
         except Exception as exc:  # noqa: BLE001 - a wizard never raises at the page
             return f"Could not check the key: {type(exc).__name__}"

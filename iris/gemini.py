@@ -19,10 +19,12 @@ before and the response shape below is read defensively for that reason.
 """
 
 import json
+import re
 import urllib.error
 import urllib.request
 
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
+MODELS_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
 TIMEOUT = 45.0
 
 
@@ -97,6 +99,22 @@ def search(question: str) -> dict:
                 "if the address is already known."
                 + (f" ({message})" if message else "")
             ) from exc
+        if exc.code == 404:
+            # The model is retired, or was never on this key's tier. Google
+            # retires models for new keys while leaving them for existing
+            # ones, so no single default is right for everybody - ask.
+            usable = available_models()
+            suggestion = ""
+            if usable:
+                suggestion = (
+                    "\nThis key can use: " + ", ".join(usable[:6])
+                    + f"\nSet IRIS_GEMINI_MODEL in .env to one of those - "
+                    f"{usable[0]} is the newest."
+                )
+            raise SearchUnavailable(
+                f"The model {config.GEMINI_MODEL} is not available to this key. "
+                f"{message}{suggestion}"
+            ) from exc
         raise SearchUnavailable(
             f"Google returned HTTP {exc.code}." + (f" {message}" if message else "")
         ) from exc
@@ -104,6 +122,43 @@ def search(question: str) -> dict:
         raise SearchUnavailable(f"Could not reach Google: {type(exc).__name__}") from exc
 
     return _read(body)
+
+
+def available_models(key: str = "") -> list[str]:
+    """Which models this key can actually use, newest-looking first.
+
+    Worth asking rather than guessing. Google retires models for new keys
+    without retiring them for existing ones, so a name that is correct in the
+    documentation and correct on one account is a 404 on another - which is
+    exactly how the default here came to be wrong twice.
+    """
+    from iris import config
+
+    request = urllib.request.Request(
+        MODELS_ENDPOINT,
+        headers={"x-goog-api-key": key or config.GEMINI_KEY},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            body = json.loads(response.read().decode("utf-8", errors="replace"))
+    except Exception:  # noqa: BLE001 - a failure here costs a suggestion, not the answer
+        return []
+
+    names = []
+    for model in body.get("models", []) if isinstance(body, dict) else []:
+        name = str(model.get("name", "")).removeprefix("models/")
+        # Only the ones that can answer a prompt at all; embedding and vision
+        # models are in this list too and would be useless suggestions.
+        methods = model.get("supportedGenerationMethods") or []
+        if name and (not methods or "generateContent" in methods):
+            names.append(name)
+
+    # Newest first by the number in the name, so the suggestion is a good one.
+    def rank(name: str) -> tuple:
+        digits = re.findall(r"\d+(?:\.\d+)?", name)
+        return (-float(digits[0]) if digits else 0, name)
+
+    return sorted(names, key=rank)
 
 
 def _error_detail(exc: urllib.error.HTTPError) -> tuple[str, str]:
