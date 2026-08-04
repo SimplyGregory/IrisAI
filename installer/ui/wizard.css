@@ -1,0 +1,312 @@
+/* The same Fluent vocabulary as the panel, at setup-window scale.
+ *
+ * Colours are WinUI's own tokens rather than approximations: text is white at
+ * a given opacity rather than grey, surfaces are layered rather than lightened,
+ * and the accent is read from the user's own Windows accent at startup.
+ */
+
+:root {
+  --accent: #4CC2FF;
+  --accent-text: #000;
+  --bg: #202020;
+  --rail: #1A1A1A;
+  --layer: rgba(255, 255, 255, 0.0512);
+  --control: rgba(255, 255, 255, 0.0605);
+  --control-hover: rgba(255, 255, 255, 0.0837);
+  --stroke: rgba(255, 255, 255, 0.0698);
+  --stroke-strong: rgba(255, 255, 255, 0.5442);
+  --divider: rgba(255, 255, 255, 0.0837);
+  --text: #FFFFFF;
+  --text-2: rgba(255, 255, 255, 0.786);
+  --text-3: rgba(255, 255, 255, 0.5442);
+}
+
+[data-theme="light"] {
+  --accent-text: #FFFFFF;
+  --bg: #F3F3F3;
+  --rail: #EAEAEA;
+  --layer: rgba(255, 255, 255, 0.70);
+  --control: rgba(255, 255, 255, 0.70);
+  --control-hover: rgba(249, 249, 249, 0.50);
+  --stroke: rgba(0, 0, 0, 0.0578);
+  --stroke-strong: rgba(0, 0, 0, 0.4458);
+  --divider: rgba(0, 0, 0, 0.0578);
+  --text: rgba(0, 0, 0, 0.8956);
+  --text-2: rgba(0, 0, 0, 0.6063);
+  --text-3: rgba(0, 0, 0, 0.4458);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text);
+  background: var(--bg);
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+}
+
+code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12.5px; }
+kbd {
+  font: inherit;
+  font-size: 12px;
+  padding: 1px 6px;
+  border: 1px solid var(--divider);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--control);
+}
+
+.frame { display: grid; grid-template-columns: 230px 1fr; height: 100%; }
+
+/* --- the rail ----------------------------------------------------------- */
+
+.rail {
+  background: var(--rail);
+  border-right: 1px solid var(--divider);
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand { display: flex; align-items: center; gap: 11px; margin-bottom: 26px; }
+.brand img { border-radius: 50%; display: block; }
+.brand-name {
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+.brand-sub { font-size: 12px; color: var(--text-3); }
+
+.steps { list-style: none; margin: 0; padding: 0; flex: 1 1 auto; }
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 13px;
+  color: var(--text-3);
+  transition: color 140ms linear;
+}
+.steps li .pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+  opacity: 0.5;
+  transition: all 160ms cubic-bezier(0.13, 1, 0.31, 1);
+}
+.steps li.done { color: var(--text-2); }
+.steps li.done .pip { background: var(--accent); opacity: 0.55; }
+.steps li.at { color: var(--text); font-weight: 600; }
+.steps li.at .pip { background: var(--accent); opacity: 1; transform: scale(1.5); }
+
+.rail-foot { font-size: 11.5px; line-height: 16px; color: var(--text-3); margin: 0; }
+
+/* --- the pane ----------------------------------------------------------- */
+
+.pane { display: flex; flex-direction: column; padding: 30px 34px 18px; overflow: hidden; }
+
+.step { flex: 1 1 auto; overflow-y: auto; padding-right: 8px; }
+.step[hidden] { display: none; }
+
+h1 {
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.lede { color: var(--text-2); margin: 0 0 20px; max-width: 60ch; }
+
+/* Windows 11's scrollbar, same as the panel's. */
+.step::-webkit-scrollbar { width: 12px; }
+.step::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+.step::-webkit-scrollbar-thumb {
+  background: var(--text-3);
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background-clip: content-box;
+  min-height: 30px;
+}
+.step::-webkit-scrollbar-thumb:hover { border-width: 3px; }
+
+/* --- choosable cards ---------------------------------------------------- */
+
+.card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px 15px;
+  margin-bottom: 9px;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: var(--control);
+  transition: background 90ms linear, border-color 90ms linear;
+}
+.card:hover { background: var(--control-hover); }
+.card input { margin: 3px 0 0; accent-color: var(--accent); }
+.card:has(input:checked) { border-color: var(--accent); background: var(--control-hover); }
+.card-body { display: flex; flex-direction: column; gap: 3px; }
+.card-body b { font-weight: 600; }
+.card-body span { font-size: 12.5px; line-height: 17px; color: var(--text-3); }
+
+/* --- fields ------------------------------------------------------------- */
+
+.field { display: block; margin-bottom: 18px; }
+.field.narrow input { max-width: 160px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+.label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; }
+.label em { font-style: normal; color: var(--text-3); }
+
+input[type="text"], input[type="password"], input[type="number"] {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke);
+  border-bottom-color: var(--stroke-strong);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  user-select: text;
+  cursor: text;
+}
+input:focus { background: var(--bg); border-bottom: 2px solid var(--accent); }
+input::placeholder { color: var(--text-3); }
+
+.with-button { display: flex; gap: 8px; }
+.hint {
+  display: block;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: var(--text-3);
+  margin-top: 5px;
+  max-width: 62ch;
+}
+
+.reveal[hidden] { display: none; }
+
+/* --- effort dots -------------------------------------------------------- */
+
+.steps-dots { display: flex; align-items: center; gap: 9px; padding: 4px 0 2px; }
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--control-hover);
+  cursor: default;
+  transition: background 90ms linear, transform 90ms linear;
+}
+.dot:hover { transform: scale(1.2); }
+.dot.on { background: var(--accent); }
+.dot.at { background: var(--accent); transform: scale(1.45); }
+
+/* --- switches ----------------------------------------------------------- */
+
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 13px 15px;
+  margin-bottom: 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: var(--control);
+}
+.switch-row > span { display: flex; flex-direction: column; gap: 3px; }
+.switch-row b { font-weight: 600; }
+.switch-row .hint { margin-top: 2px; }
+
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 21px;
+  margin-top: 2px;
+  border-radius: 11px;
+  border: 1px solid var(--stroke-strong);
+  background: transparent;
+  cursor: default;
+  transition: background 120ms linear, border-color 120ms linear;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transform: translateY(-50%);
+  transition: left 120ms cubic-bezier(0.13, 1, 0.31, 1), background 120ms linear;
+}
+.switch.on { background: var(--accent); border-color: transparent; }
+.switch.on::after { left: 23px; background: var(--accent-text); }
+
+/* --- footer ------------------------------------------------------------- */
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
+}
+.problem { flex: 1 1 auto; font-size: 12.5px; color: #FF99A4; }
+[data-theme="light"] .problem { color: #C42B1C; }
+
+button.ghost, button.primary {
+  height: 32px;
+  padding: 0 20px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 13px;
+  cursor: default;
+  border: 1px solid var(--stroke);
+  transition: background 90ms linear, filter 90ms linear;
+}
+button.ghost { background: var(--control); color: var(--text); }
+button.ghost:hover { background: var(--control-hover); }
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+  font-weight: 600;
+}
+button.primary:hover { filter: brightness(1.08); }
+button.primary:disabled { opacity: 0.5; }
+
+/* --- the last screen ---------------------------------------------------- */
+
+.created { list-style: none; margin: 0 0 20px; padding: 0; }
+.created li {
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 4px 0 4px 22px;
+  position: relative;
+}
+.created li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 9px;
+  height: 5px;
+  border-left: 1.6px solid var(--accent);
+  border-bottom: 1.6px solid var(--accent);
+  transform: rotate(-45deg);
+}

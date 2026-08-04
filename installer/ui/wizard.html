@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Set up Iris</title>
+  <link rel="stylesheet" href="wizard.css">
+</head>
+<body>
+  <div class="frame">
+
+    <aside class="rail">
+      <div class="brand">
+        <img src="claude-logo.png" alt="" width="34" height="34">
+        <div>
+          <div class="brand-name">Iris</div>
+          <div class="brand-sub">Setup</div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li data-step="0"><span class="pip"></span>Backend</li>
+        <li data-step="1"><span class="pip"></span>AI configuration</li>
+        <li data-step="2"><span class="pip"></span>AI safety</li>
+        <li data-step="3"><span class="pip"></span>Browser</li>
+        <li data-step="4"><span class="pip"></span>Editor</li>
+      </ol>
+      <p class="rail-foot">Everything here can be changed later, in the panel
+         or by editing <code>.env</code>.</p>
+    </aside>
+
+    <main class="pane">
+
+      <!-- 1 ---------------------------------------------------------------->
+      <section class="step" data-step="0">
+        <h1>Which backend should Iris run on?</h1>
+        <p class="lede">This decides who runs the agent loop, and who pays for it.
+           The tools and everything else are identical either way.</p>
+
+        <label class="card">
+          <input type="radio" name="backend" value="sdk" checked>
+          <span class="card-body">
+            <b>Claude Agent SDK</b>
+            <span>Runs on your Claude Pro or Max subscription through the Claude
+              Code CLI. Nothing extra to pay, no key to manage. Shares one usage
+              pool with Claude Code and claude.ai.</span>
+          </span>
+        </label>
+
+        <label class="card">
+          <input type="radio" name="backend" value="api">
+          <span class="card-body">
+            <b>Anthropic API</b>
+            <span>Billed per token against Console credits. Its own usage pool,
+              so Iris never competes with your Claude Code sessions.</span>
+          </span>
+        </label>
+
+        <div class="reveal" id="sdk-fields">
+          <label class="field">
+            <span class="label">Claude Code CLI</span>
+            <span class="with-button">
+              <input type="text" id="cli_path" placeholder="Leave blank to detect it automatically">
+              <button class="ghost" data-browse="cli_path">Browse</button>
+            </span>
+            <span class="hint" id="cli-hint">Blank is right almost always.</span>
+          </label>
+        </div>
+
+        <div class="reveal" id="api-fields" hidden>
+          <label class="field">
+            <span class="label">API key</span>
+            <input type="password" id="api_key" placeholder="sk-ant-..." spellcheck="false">
+            <span class="hint">From console.anthropic.com &rarr; Settings &rarr; API keys.
+              Stored in <code>.env</code> in the install folder.</span>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="label">Install to</span>
+          <span class="with-button">
+            <input type="text" id="target">
+            <button class="ghost" data-browse-folder="target">Browse</button>
+          </span>
+          <span class="hint">Per-user, so no administrator prompt. Program Files
+            would need one, and Iris could not write her memory there afterwards.</span>
+        </label>
+      </section>
+
+      <!-- 2 ---------------------------------------------------------------->
+      <section class="step" data-step="1" hidden>
+        <h1>AI configuration</h1>
+        <p class="lede">Sensible defaults. Worth revisiting once you know how you use her.</p>
+
+        <div class="field">
+          <span class="label">Model</span>
+          <div id="models"></div>
+        </div>
+
+        <div class="field">
+          <span class="label">Effort <em id="effort-name">medium</em></span>
+          <div class="steps-dots" id="efforts"></div>
+          <span class="hint">How hard she thinks before acting. Higher is better on
+            long multi-step chains and slower to answer.</span>
+        </div>
+
+        <div class="two">
+          <label class="field">
+            <span class="label">Max tokens per reply</span>
+            <input type="number" id="max_tokens" min="1000" max="64000" step="500" value="8000">
+            <span class="hint">Raise if long chains get cut off mid-task.</span>
+          </label>
+          <label class="field">
+            <span class="label">Commands kept in context</span>
+            <input type="number" id="history" min="0" max="50" value="4">
+            <span class="hint">Higher remembers more of the conversation, and
+              re-sends more each turn.</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- 3 ---------------------------------------------------------------->
+      <section class="step" data-step="2" hidden>
+        <h1>AI safety</h1>
+        <p class="lede">Iris can run commands, edit files and drive your mouse.
+           This is how much she checks with you first.</p>
+
+        <div class="field">
+          <span class="label">Ask before acting</span>
+          <div id="safety"></div>
+        </div>
+
+        <label class="switch-row">
+          <span>
+            <b>Hide personal details from the model</b>
+            <span class="hint">Emails, phone numbers and card numbers in tool output
+              become placeholders like <code>[email 1]</code>. The real values stay
+              on this machine and can still be pasted where they are needed.
+              Passwords and keys are always hidden regardless.</span>
+          </span>
+          <button class="switch on" id="redact_pii" role="switch" aria-checked="true"></button>
+        </label>
+      </section>
+
+      <!-- 4 ---------------------------------------------------------------->
+      <section class="step" data-step="3" hidden>
+        <h1>Browser</h1>
+        <p class="lede">Iris drives Chrome directly to read pages, click and fill things in.</p>
+
+        <label class="switch-row">
+          <span>
+            <b>Use my everyday Chrome profile</b>
+            <span class="hint">Off means a separate profile, so she never fights the
+              browser you already have open. Sign in once in her window and it stays
+              signed in. On means she uses yours, with your logins already there,
+              but every Chrome window must be closed before she starts it.</span>
+          </span>
+          <button class="switch" id="real_chrome_profile" role="switch" aria-checked="false"></button>
+        </label>
+
+        <label class="field narrow">
+          <span class="label">DevTools port</span>
+          <input type="number" id="cdp_port" min="1024" max="65535" value="9222">
+          <span class="hint">Only change this if something else on your machine
+            already uses 9222.</span>
+        </label>
+      </section>
+
+      <!-- 5 ---------------------------------------------------------------->
+      <section class="step" data-step="4" hidden>
+        <h1>Editor</h1>
+        <p class="lede">Iris can work inside VS Code, if you want her to.</p>
+
+        <label class="switch-row">
+          <span>
+            <b>Connect to VS Code</b>
+            <span class="hint" id="vscode_hint">Installs a small extension so Iris can
+              see the errors your editor is reporting, what file you have open and what
+              you have selected, and can edit through the editor so Ctrl+Z undoes her
+              changes. Without it VS Code is just another window to her - it hides its
+              insides from the tools she normally uses.</span>
+          </span>
+          <button class="switch" id="vscode" role="switch" aria-checked="false"></button>
+        </label>
+      </section>
+
+      <footer class="actions">
+        <span class="problem" id="problem"></span>
+        <button class="ghost" id="back" hidden>Back</button>
+        <button class="primary" id="next">Next</button>
+      </footer>
+    </main>
+  </div>
+  <script src="wizard.js"></script>
+</body>
+</html>

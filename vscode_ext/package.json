@@ -1,0 +1,26 @@
+{
+  "name": "iris-bridge",
+  "displayName": "Iris Bridge",
+  "description": "Lets the Iris assistant see and drive this editor.",
+  "version": "1.4.0",
+  "publisher": "iris",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "iris.status",
+        "title": "Iris: Bridge status"
+      }
+    ]
+  }
+}

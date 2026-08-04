@@ -1,0 +1,50 @@
+# Environment markers rather than a second file: pip reads these and installs
+# only what applies, so one list serves both machines and neither can drift
+# from the other. Without them `pip install -r requirements.txt` fails on a Mac
+# at pywin32, which does not build anywhere but Windows.
+
+# --- core (required for text mode) ---
+anthropic>=0.75
+python-dotenv>=1.0
+
+# --- subscription backend (IRIS_BACKEND=sdk); needs Claude Code installed ---
+claude-agent-sdk>=0.2
+
+# --- device control ---
+mss>=9.0
+pyautogui>=0.9.54
+pygetwindow>=0.0.9; sys_platform == "win32"
+pywin32>=306; sys_platform == "win32"
+pywinauto>=0.6.9; sys_platform == "win32"
+
+# --- the panel window ---
+# On Windows pywebview hosts a WebView2 (Edge) control and reaches the .NET
+# side of it through pythonnet. On macOS it hosts a WKWebView through Cocoa,
+# which is what the pyobjc frameworks below are for. Neither needs a compiler.
+pywebview>=6.0
+pythonnet>=3.0; sys_platform == "win32"
+
+# --- macOS ---
+# pyobjc is not optional there: pywebview's Cocoa backend, the permission
+# checks in iris/platform/macos.py, the global hotkey and pyautogui all need it.
+pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+pyobjc-framework-Quartz>=10.0; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices>=10.0; sys_platform == "darwin"
+
+# --- the tray app ---
+pystray>=0.19
+pillow>=10.0
+
+# --- browser control ---
+playwright>=1.40
+
+# --- voice (optional; only needed for the wake word and dictation) ---
+faster-whisper>=1.1
+sounddevice>=0.4.6
+numpy>=1.26
+# Speech goes through whatever the OS provides - SAPI on Windows via pywin32,
+# `say` on macOS - reached through iris/platform. Not pyttsx3: its comtypes COM
+# state does not survive the agent's asyncio loop.
+
+# --- building (not needed to run from source) ---
+pyinstaller>=6.0

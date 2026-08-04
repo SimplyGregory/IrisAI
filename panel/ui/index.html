@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iris Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="panel" id="panel">
+
+    <header class="titlebar">
+      <div class="identity">
+        <img class="glyph" id="glyph" src="claude-logo.png" alt="" aria-hidden="true">
+        <div class="names">
+          <span class="title" id="title">Iris</span>
+          <span class="subtitle" id="subtitle">starting up</span>
+        </div>
+      </div>
+      <!-- Rebuilt from rects rather than using the shipped clawd.svg, which is
+           one flat path: eyes that cannot move separately from the body cannot
+           look around, and looking around is most of the point. -->
+      <div class="mascot" id="mascot" data-mood="idle" title="Iris" aria-hidden="true">
+        <svg viewBox="0 0 48 40" width="30" height="25">
+          <g class="body">
+            <rect class="arm" x="0"  y="14" width="10" height="7"/>
+            <rect class="arm" x="38" y="14" width="10" height="7"/>
+            <rect class="torso" x="8" y="2" width="32" height="26"/>
+            <g class="legs">
+              <rect x="11" y="27" width="4" height="9"/>
+              <rect x="18" y="27" width="4" height="9"/>
+              <rect x="27" y="27" width="4" height="9"/>
+              <rect x="34" y="27" width="4" height="9"/>
+            </g>
+            <g class="eyes">
+              <rect class="eye" x="15" y="9"  width="4" height="9"/>
+              <rect class="eye" x="30" y="9"  width="4" height="9"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="actions">
+        <button class="icon-button" id="mute" title="Speak replies aloud" aria-label="Toggle voice">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path id="speaker" d="M8.5 2.6v10.8a.6.6 0 0 1-1 .43L4.4 11H2.6A1.1 1.1 0 0 1 1.5 9.9V6.1A1.1 1.1 0 0 1 2.6 5h1.8l3.1-2.83a.6.6 0 0 1 1 .43z"/>
+            <path id="waves" d="M10.8 5.4a3.6 3.6 0 0 1 0 5.2M12.7 3.5a6.3 6.3 0 0 1 0 9"
+                  fill="none" stroke-width="1.3" stroke-linecap="round"/>
+            <path id="slash" d="M11 5.5l4 5" fill="none" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="icon-button close" id="close" title="Hide (Esc)" aria-label="Hide panel">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke-width="1.1" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="thread" id="thread">
+      <div class="empty" id="empty">
+        <p class="empty-title">Ask me to do something</p>
+        <p class="empty-hint">open chrome and search for train times</p>
+        <p class="empty-hint">what did I change in downloads today</p>
+        <p class="empty-hint">minimize everything except notepad</p>
+      </div>
+    </main>
+
+    <div class="composer">
+      <div class="field" id="field">
+        <textarea id="input" rows="1" placeholder="Message Iris" spellcheck="false"
+                  aria-label="Message Iris"></textarea>
+
+        <div class="toolbar">
+          <button class="tool-button" id="attach" title="Add a file, or search the web"
+                  aria-label="Add">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path d="M8 3.5v9M3.5 8h9" fill="none" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="tool-button" id="tune" title="Model, effort and thinking"
+                  aria-label="Model settings">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path d="M10 3L6 13" fill="none" stroke-width="1.3" stroke-linecap="round"/>
+              <rect x="2.5" y="2.5" width="11" height="11" rx="3" fill="none" stroke-width="1.1"/>
+            </svg>
+          </button>
+
+          <span class="spacer"></span>
+
+          <button class="chip" id="mode" title="How much Iris asks before acting">
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+              <path d="M9 1.5L3.5 9H7.5L7 14.5L12.5 7H8.5L9 1.5z" stroke-width="1"/>
+            </svg>
+            <span id="mode-name">Manual</span>
+          </button>
+
+          <button class="tool-button" id="mic" title="Dictate a message" aria-label="Dictate">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <rect x="6" y="1.8" width="4" height="7.5" rx="2" stroke-width="1.1" fill="none"/>
+              <path d="M3.8 7.4a4.2 4.2 0 0 0 8.4 0M8 11.6v2.6" fill="none"
+                    stroke-width="1.1" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <button class="send" id="send" title="Send (Enter)" aria-label="Send">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path d="M8 13V3.5M4 7l4-4 4 4" fill="none" stroke-width="1.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="hintbar">
+        <span class="hotkey" id="hotkey"></span>
+      </div>
+
+      <!-- Menus, anchored above whichever button opened them. -->
+      <div class="menu" id="menu" hidden></div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

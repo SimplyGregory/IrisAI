@@ -1,0 +1,46 @@
+# What is regenerated, and what is nobody else's business.
+#
+# Useful even without git: it is the written record of which files in this
+# folder are disposable, so a clear-out never has to guess twice.
+
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# --- build output ---------------------------------------------------------
+# build/ is PyInstaller's scratch space and is rebuilt from nothing every time.
+# dist/ is the finished program - large, and reproduced by build.py or
+# build_macos.sh whenever it is wanted.
+build/
+dist/
+*.dmg
+*.vsix
+build.log
+build-macos.log
+
+# --- what the program writes while running --------------------------------
+# Running from source leaves these beside the code; a real install keeps its
+# own copies elsewhere, which are the ones that matter.
+iris.log
+memory.json
+
+# --- secrets --------------------------------------------------------------
+# .env holds an API key on the api backend. Never commit it, and think twice
+# before copying it to another machine - IRIS_CLI_PATH and
+# IRIS_SPEECH_THRESHOLD are both specific to the machine that wrote them.
+.env
+.env.*
+!.env.example
+
+# --- copied in at runtime -------------------------------------------------
+# The wizard copies the logo next to its own page on first run.
+installer/ui/claude-logo.png
+
+# --- editors and systems --------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

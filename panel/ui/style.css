@@ -1,0 +1,954 @@
+/* Fluent, by hand.
+ *
+ * The colours are WinUI's own tokens rather than approximations, because the
+ * near-misses are what make a home-made Windows theme look off: text is never
+ * pure grey but white at a given opacity, surfaces are layered rather than
+ * lightened, and the accent is whichever shade of the user's accent keeps its
+ * contrast against the current theme (chrome.py picks it).
+ *
+ * Radii: 4px on controls, 8px on the window and anything overlay-like - the
+ * same two values WinUI uses almost everywhere.
+ */
+
+:root {
+  --accent: #4CC2FF;
+  --accent-text: #000;            /* text on an accent fill, dark theme */
+
+  --bg: #202020;
+  --layer: rgba(255, 255, 255, 0.0512);
+  --layer-alt: rgba(255, 255, 255, 0.0326);
+  --control: rgba(255, 255, 255, 0.0605);
+  --control-hover: rgba(255, 255, 255, 0.0837);
+  --control-press: rgba(255, 255, 255, 0.0326);
+
+  --stroke: rgba(255, 255, 255, 0.0698);
+  --stroke-strong: rgba(255, 255, 255, 0.5442);
+  --divider: rgba(255, 255, 255, 0.0837);
+
+  --text: #FFFFFF;
+  --text-2: rgba(255, 255, 255, 0.786);
+  --text-3: rgba(255, 255, 255, 0.5442);
+
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+}
+
+[data-theme="light"] {
+  --accent-text: #FFFFFF;
+
+  --bg: #F3F3F3;
+  --layer: rgba(255, 255, 255, 0.70);
+  --layer-alt: rgba(249, 249, 249, 0.50);
+  --control: rgba(255, 255, 255, 0.70);
+  --control-hover: rgba(249, 249, 249, 0.50);
+  --control-press: rgba(249, 249, 249, 0.30);
+
+  --stroke: rgba(0, 0, 0, 0.0578);
+  --stroke-strong: rgba(0, 0, 0, 0.4458);
+  --divider: rgba(0, 0, 0, 0.0578);
+
+  --text: rgba(0, 0, 0, 0.8956);
+  --text-2: rgba(0, 0, 0, 0.6063);
+  --text-3: rgba(0, 0, 0, 0.4458);
+
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  /* Segoe UI Variable is the Windows 11 type family; Text is the optical size
+     meant for body copy, Display for anything above ~18px. */
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text);
+  background: var(--bg);
+  user-select: none;
+  cursor: default;
+}
+
+/* The window region is clipped to rounded corners in chrome.py; this draws the
+   1px border Windows would have drawn around it. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* No fade on the way in or out. The movement is done by the window itself
+   (chrome.slide_up / slide_down), so the panel arrives and leaves fully drawn,
+   contents and all - which is the point of moving the window rather than
+   animating inside it. Fading as well only emptied the panel while it flew. */
+
+/* --- title bar ---------------------------------------------------------- */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
+  border-bottom: 1px solid var(--divider);
+  flex: 0 0 auto;
+}
+
+.identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* The Claude mark, taken from the copy the Claude Code extension already ships
+   on this machine rather than a redrawn approximation. It is a filled circle,
+   so the halo that shows she is working still sits around it cleanly. */
+.glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  display: block;
+  /* The halo takes its colour from the mark, not the system accent - a purple
+     ring around a terracotta logo reads as a mistake. */
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.22);
+  transition: box-shadow 200ms linear;
+}
+
+.thinking .glyph { animation: pulse 1.6s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.22); }
+  50%      { box-shadow: 0 0 0 7px rgba(217, 119, 87, 0.10); }
+}
+
+.names { display: flex; flex-direction: column; min-width: 0; }
+
+.title {
+  font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.subtitle {
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Once the conversation has a name it is the useful half of the header, so it
+   comes forward a step from the settings line it replaced. */
+.subtitle.named {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* --- the mascot --------------------------------------------------------- */
+
+/* Sits between the name and the window buttons, so it has the right-hand side
+   of the title bar to itself without crowding either. */
+.mascot {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: 6px;
+  display: grid;
+  place-items: center;
+  opacity: 0.9;
+}
+
+.mascot svg { display: block; overflow: visible; }
+.mascot .torso, .mascot .arm, .mascot .legs rect { fill: #D97757; }
+.mascot .eye { fill: var(--bg); }
+
+/* Every part transforms about its own middle rather than the SVG origin,
+   which is what makes a blink squash in place instead of sliding upward. */
+.mascot .body, .mascot .eyes, .mascot .eye, .mascot .legs rect {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Idle: breathing, and a blink every few seconds. Deliberately slow - this
+   sits in the corner of the eye all day and anything livelier becomes a
+   thing you want to cover up. */
+.mascot .body { animation: bob 4s ease-in-out infinite; }
+.mascot .eye { animation: blink 7s infinite; }
+.mascot .eye:nth-child(2) { animation-delay: 0.06s; }  /* eyes are not quite in sync */
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1px); }
+}
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.12); }
+}
+
+/* Reading, searching, looking through things: eyes sweep side to side. */
+.mascot[data-mood="looking"] .eyes { animation: scan 2.2s ease-in-out infinite; }
+@keyframes scan {
+  0%, 100% { transform: translateX(-2.5px); }
+  50%      { transform: translateX(2.5px); }
+}
+
+/* Thinking: shorter, quicker glances rather than a steady sweep. */
+.mascot[data-mood="thinking"] .eyes { animation: dart 1.4s steps(1, end) infinite; }
+@keyframes dart {
+  0%, 40%  { transform: translateX(-2px); }
+  50%, 90% { transform: translateX(2px); }
+  95%      { transform: translateX(0); }
+}
+
+/* Typing: legs tap in sequence, and the body keeps time. */
+.mascot[data-mood="typing"] .legs rect { animation: tap 0.42s ease-in-out infinite; }
+.mascot[data-mood="typing"] .legs rect:nth-child(2) { animation-delay: 0.10s; }
+.mascot[data-mood="typing"] .legs rect:nth-child(3) { animation-delay: 0.21s; }
+.mascot[data-mood="typing"] .legs rect:nth-child(4) { animation-delay: 0.31s; }
+.mascot[data-mood="typing"] .body { animation: bob 0.84s ease-in-out infinite; }
+@keyframes tap {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2.5px); }
+}
+
+/* Walking: the same legs, alternating in pairs, with a longer stride. */
+.mascot[data-mood="walking"] .legs rect { animation: step 0.6s ease-in-out infinite; }
+.mascot[data-mood="walking"] .legs rect:nth-child(2n) { animation-delay: 0.3s; }
+.mascot[data-mood="walking"] .body { animation: bob 0.6s ease-in-out infinite; }
+@keyframes step {
+  0%, 100% { transform: translateY(0) }
+  50%      { transform: translateY(-3px); }
+}
+
+/* Listening: leans in, eyes held wide open rather than blinking. */
+.mascot[data-mood="listening"] .body { animation: lean 1.8s ease-in-out infinite; }
+.mascot[data-mood="listening"] .eye { animation: none; transform: scaleY(1.15); }
+@keyframes lean {
+  0%, 100% { transform: rotate(-4deg); }
+  50%      { transform: rotate(4deg); }
+}
+
+/* Speaking: a quick nod on the beat. */
+.mascot[data-mood="speaking"] .body { animation: nod 0.5s ease-in-out infinite; }
+@keyframes nod {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-1.5px) scale(1.04); }
+}
+
+/* Being petted. Outranks every other mood: whatever she was in the middle of,
+   this is the thing worth showing while you are doing it.
+   Eyes squeezed shut is what does the work here - a blocky face has no mouth
+   to smile with, so the happiness has to come from the eyes closing and the
+   whole body wagging. */
+.mascot[data-mood="petting"] .eye {
+  animation: none;
+  transform: scaleY(0.2);
+}
+.mascot[data-mood="petting"] .body { animation: wiggle 0.4s ease-in-out infinite; }
+.mascot[data-mood="petting"] .legs rect { animation: tap 0.3s ease-in-out infinite; }
+.mascot[data-mood="petting"] .legs rect:nth-child(2) { animation-delay: 0.07s; }
+.mascot[data-mood="petting"] .legs rect:nth-child(3) { animation-delay: 0.15s; }
+.mascot[data-mood="petting"] .legs rect:nth-child(4) { animation-delay: 0.22s; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  50%      { transform: rotate(8deg) translateY(-2px); }
+}
+
+/* A wider, friendlier target than the 30px drawing, so a hand moving across
+   the title bar finds her rather than skimming past. */
+.mascot { padding: 4px 8px; margin-right: 0; }
+
+.actions { display: flex; gap: 2px; flex: 0 0 auto; }
+
+.icon-button {
+  width: 32px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: default;
+  transition: background 90ms linear;
+}
+
+.icon-button svg { fill: currentColor; stroke: currentColor; }
+.icon-button:hover { background: var(--control-hover); color: var(--text); }
+.icon-button:active { background: var(--control-press); }
+/* Only the window close button turns red, exactly as it does in Windows. */
+.icon-button.close:hover { background: #C42B1C; color: #fff; }
+
+#slash { display: none; }
+.muted #waves { display: none; }
+.muted #slash { display: block; }
+.muted #mute { color: var(--text-3); }
+
+/* --- the conversation --------------------------------------------------- */
+
+.thread {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: text;
+}
+
+/* Windows 11's scrollbar: an unobtrusive sliver that thickens on hover. The
+   same treatment everywhere something scrolls - the thread, the menus, the
+   command shown in a confirmation - so a scrollbar never announces itself as
+   a different piece of furniture from the rest of the panel. */
+.thread::-webkit-scrollbar,
+.ask pre::-webkit-scrollbar,
+.msg pre::-webkit-scrollbar { width: 12px; height: 12px; }
+
+.thread::-webkit-scrollbar-thumb,
+.ask pre::-webkit-scrollbar-thumb,
+.msg pre::-webkit-scrollbar-thumb {
+  background: var(--text-3);
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background-clip: content-box;
+  min-height: 26px;
+}
+
+.thread::-webkit-scrollbar-thumb:hover,
+.ask pre::-webkit-scrollbar-thumb:hover,
+.msg pre::-webkit-scrollbar-thumb:hover { border-width: 3px; }
+
+.thread::-webkit-scrollbar-track,
+.ask pre::-webkit-scrollbar-track,
+.msg pre::-webkit-scrollbar-track { background: transparent; }
+
+/* Inset from the rounded corners of the box it sits in. */
+.ask pre::-webkit-scrollbar-track,
+.msg pre::-webkit-scrollbar-track { margin: 6px 0; }
+
+.thread::-webkit-scrollbar-corner,
+.ask pre::-webkit-scrollbar-corner,
+.msg pre::-webkit-scrollbar-corner { background: transparent; }
+
+.empty { margin: auto 0; padding: 8px 4px; user-select: none; }
+.empty-title { margin: 0 0 10px; color: var(--text-2); font-weight: 600; }
+.empty-hint {
+  margin: 0 0 6px;
+  color: var(--text-3);
+  font-size: 13px;
+  padding-left: 14px;
+  position: relative;
+}
+.empty-hint::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
+/* A step down from the 14px body size. The panel is only 360 wide, so a
+   smaller face is the difference between a sentence wrapping twice and once,
+   and there is a lot more of this text than there is chrome around it. */
+.msg {
+  max-width: 88%;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 18.5px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* A caret on the end of the reply while it is still being written. Inline so
+   it sits after the last character wherever that happens to be. */
+.msg.streaming::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 13px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--text-2);
+  animation: caret 1s steps(2, start) infinite;
+}
+
+@keyframes caret {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+.msg.you {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-bottom-right-radius: 4px;
+}
+
+.msg.iris {
+  align-self: flex-start;
+  background: var(--layer);
+  border: 1px solid var(--stroke);
+  border-bottom-left-radius: 4px;
+}
+
+.msg code {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--control);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.msg pre {
+  margin: 6px 0 2px;
+  padding: 8px 10px;
+  background: var(--layer-alt);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+.msg pre code { background: none; padding: 0; }
+
+/* Tool calls: present but quiet, so a long chain does not drown the reply. */
+.tool {
+  align-self: flex-start;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-3);
+  padding-left: 2px;
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+}
+.tool b { color: var(--text-2); font-weight: 600; }
+
+/* A call that failed. Muted rather than alarming: she has usually recovered
+   by the next line, and this is here so the recovery is legible, not to make
+   every stumble look like a crash. */
+.tool.failed { padding-left: 4px; }
+.tool.failed b { color: #FF99A4; font-weight: 400; }
+.tool.failed span { color: #FF99A4; opacity: 0.8; }
+[data-theme="light"] .tool.failed b,
+[data-theme="light"] .tool.failed span { color: #C42B1C; }
+.tool span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.note {
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 2px 10px;
+  background: var(--layer-alt);
+  border-radius: 10px;
+}
+
+.note.bad { color: #FF99A4; background: rgba(255, 99, 111, 0.10); }
+[data-theme="light"] .note.bad { color: #C42B1C; background: rgba(196, 43, 28, 0.08); }
+
+.usage { font-size: 11px; color: var(--text-3); align-self: flex-start; margin-top: -6px; }
+
+/* Three dots while she thinks - the lightest possible "still here". */
+.dots { align-self: flex-start; display: flex; gap: 4px; padding: 8px 4px; }
+.dots i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-3);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.dots i:nth-child(2) { animation-delay: 0.15s; }
+.dots i:nth-child(3) { animation-delay: 0.30s; }
+@keyframes bounce {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* --- confirmations ------------------------------------------------------ */
+
+.ask {
+  align-self: stretch;
+  background: var(--layer);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ask p { margin: 0 0 8px; }
+
+.ask pre {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: var(--layer-alt);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: var(--text-2);
+  max-height: 140px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ask .row { display: flex; gap: 8px; }
+
+.btn {
+  flex: 1 1 auto;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid var(--stroke);
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: default;
+  transition: background 90ms linear;
+}
+.btn:hover { background: var(--control-hover); }
+.btn:active { background: var(--control-press); color: var(--text-2); }
+
+.btn.accent {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+  font-weight: 600;
+}
+.btn.accent:hover { filter: brightness(1.08); }
+.btn.accent:active { filter: brightness(0.92); }
+
+.ask.answered { opacity: 0.55; }
+.ask.answered .row { display: none; }
+.ask .chosen { font-size: 12px; color: var(--text-3); display: none; }
+.ask.answered .chosen { display: block; }
+
+/* --- composer ----------------------------------------------------------- */
+
+.composer {
+  flex: 0 0 auto;
+  padding: 10px 12px 8px;
+  border-top: 1px solid var(--divider);
+  position: relative;   /* the menus hang off this */
+}
+
+/* A WinUI TextBox grown into a composer: a flat fill, a hairline all round, a
+   heavier line along the bottom, and on focus that bottom line becomes two
+   pixels of accent. The controls live inside the box rather than under it, so
+   the whole thing reads as one field. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 6px 5px 10px;
+  background: var(--control);
+  border: 1px solid var(--stroke);
+  border-bottom-color: var(--stroke-strong);
+  border-radius: 6px;
+  transition: background 90ms linear;
+}
+
+.field:hover { background: var(--control-hover); }
+
+.field.focused {
+  background: var(--bg);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 4px;
+}
+
+/* --- the row of controls ------------------------------------------------ */
+
+.toolbar { display: flex; align-items: center; gap: 2px; padding-right: 1px; }
+.toolbar .spacer { flex: 1 1 auto; }
+
+.tool-button {
+  width: 26px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: default;
+  transition: background 90ms linear, color 90ms linear;
+}
+.tool-button svg { fill: none; stroke: currentColor; }
+.tool-button:hover { background: var(--control-hover); color: var(--text); }
+.tool-button.on { color: var(--accent); }
+
+/* Recording. The pulse is the only thing telling you the microphone is live,
+   so it is the one animation here allowed to be conspicuous. Clicking again
+   stops it, which is why the button stays lit rather than going disabled. */
+.tool-button.recording { color: var(--accent-text); background: var(--accent); }
+.tool-button.recording svg { animation: mic 1.1s ease-in-out infinite; }
+@keyframes mic { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* Transcribing: still busy, but no longer listening - so it holds the accent
+   without the pulse, and a ring turns while Whisper works. */
+.tool-button.working { color: var(--accent); }
+.tool-button.working svg { opacity: 0.35; }
+.tool-button.working::after {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+.tool-button { position: relative; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: default;
+  transition: background 90ms linear;
+}
+.chip svg { fill: currentColor; stroke: none; opacity: 0.75; }
+.chip:hover { background: var(--control-hover); color: var(--text); }
+
+/* --- menus -------------------------------------------------------------- */
+
+/* One element reused by all three, positioned above the button that opened it
+   - the panel is short, so a menu that dropped downwards would fall off it.
+   Sized to its contents rather than the full width: these are short lists and
+   a menu spanning the whole panel to hold three words looks like a mistake. */
+.menu {
+  position: absolute;
+  bottom: calc(100% - 6px);
+  z-index: 20;
+  width: 232px;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  /* Bounded by the window rather than a fixed number: the panel is only half
+     the screen tall, and a menu taller than it would need scrolling to reach
+     the first item - which is the one you most often want. */
+  max-height: calc(100vh - 118px);
+  overflow-y: auto;
+}
+
+/* Anchored under whichever button opened it. */
+.menu.from-left { left: 12px; }
+.menu.from-right { right: 12px; }
+
+.menu[hidden] { display: none; }
+
+/* A thumb that lives inside the menu's rounded corners rather than running
+   into them: the track is inset top and bottom, and the thumb is drawn in the
+   content box of a transparent border so it sits away from the edge. */
+.menu::-webkit-scrollbar { width: 10px; }
+.menu::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+.menu::-webkit-scrollbar-thumb {
+  min-height: 26px;
+  border: 3px solid transparent;
+  border-radius: 6px;
+  background: var(--text-3);
+  background-clip: content-box;
+}
+.menu::-webkit-scrollbar-thumb:hover { background: var(--text-2); background-clip: content-box; }
+
+.menu-label {
+  padding: 5px 8px 2px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: left;
+  cursor: default;
+}
+.menu-item:hover { background: var(--control-hover); }
+.menu-item .body { flex: 1 1 auto; min-width: 0; }
+.menu-item .hint {
+  display: block;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--text-3);
+  white-space: normal;
+}
+.menu-item .tick { flex: 0 0 auto; color: var(--accent); opacity: 0; }
+.menu-item.selected .tick { opacity: 1; }
+
+.menu-sep { height: 1px; margin: 3px 5px; background: var(--divider); }
+
+/* Effort: five steps, shown as a row of dots like the one in Claude Code. */
+.steps { display: flex; align-items: center; gap: 5px; padding: 4px 8px 7px; }
+.step {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--control-hover);
+  cursor: default;
+  transition: background 90ms linear, transform 90ms linear;
+}
+.step:hover { transform: scale(1.25); }
+.step.on { background: var(--accent); }
+.step.current { background: var(--accent); transform: scale(1.45); }
+.steps .caption { margin-left: auto; font-size: 10px; color: var(--text-3); }
+
+/* A WinUI ToggleSwitch, near enough. */
+.switch {
+  position: relative;
+  width: 32px;
+  height: 17px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  border: 1px solid var(--stroke-strong);
+  background: transparent;
+  cursor: default;
+  transition: background 120ms linear, border-color 120ms linear;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transform: translateY(-50%);
+  transition: left 120ms cubic-bezier(0.13, 1, 0.31, 1), background 120ms linear;
+}
+.switch.on { background: var(--accent); border-color: transparent; }
+.switch.on::after { left: 18px; background: var(--accent-text); }
+
+textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18.5px;
+  padding: 3px 4px 2px 0;
+  max-height: 104px;
+  user-select: text;
+  cursor: text;
+}
+
+textarea::placeholder { color: var(--text-3); }
+
+.send {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: default;
+  transition: background 90ms linear, color 90ms linear;
+}
+.send svg { stroke: currentColor; }
+.send.ready { color: var(--accent-text); background: var(--accent); }
+.send.ready:hover { filter: brightness(1.08); }
+
+.hintbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 5px 2px 0;
+  font-size: 11px;
+  color: var(--text-3);
+  min-height: 17px;
+}
+
+.hotkey { white-space: nowrap; }
+
+/* =========================================================================
+   macOS
+   =========================================================================
+   The same panel, in the other platform's visual language. Geometry is
+   deliberately untouched - position, size, every icon and button stays where
+   it was - because the layout is not what makes this look like a Windows app.
+   What makes it look like one is the material: Fluent's near-opaque #202020
+   with a hard 1px stroke and small 4px radii. macOS builds the same kind of
+   floating panel out of heavy translucency, a hairline that is barely there,
+   much rounder corners and a large soft shadow.
+
+   Applied by a data-platform attribute rather than a media query, because the
+   thing being matched is the operating system, not the viewport.
+   ========================================================================= */
+
+:root[data-platform="macos"] {
+  /* Vibrancy. macOS panels are see-through in a way Windows ones are not, and
+     the saturation boost is what stops the blurred backdrop looking grey. */
+  --bg: rgba(28, 28, 30, 0.72);
+  --material-blur: saturate(180%) blur(30px);
+
+  --layer: rgba(255, 255, 255, 0.055);
+  --layer-alt: rgba(255, 255, 255, 0.035);
+  --control: rgba(255, 255, 255, 0.09);
+  --control-hover: rgba(255, 255, 255, 0.13);
+  --control-press: rgba(255, 255, 255, 0.05);
+
+  /* A hairline rather than a stroke: on a Mac the shadow does the separating,
+     and a visible border reads as a control, not a window edge. */
+  --stroke: rgba(255, 255, 255, 0.10);
+  --stroke-strong: rgba(255, 255, 255, 0.30);
+  --divider: rgba(255, 255, 255, 0.08);
+
+  --text: rgba(255, 255, 255, 0.92);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.58), 0 0 0 0.5px rgba(255, 255, 255, 0.09);
+
+  --radius-window: 12px;
+  --radius-control: 7px;
+  --radius-small: 5px;
+}
+
+:root[data-platform="macos"][data-theme="light"] {
+  --bg: rgba(246, 246, 246, 0.76);
+  --layer: rgba(255, 255, 255, 0.62);
+  --layer-alt: rgba(255, 255, 255, 0.42);
+  --control: rgba(0, 0, 0, 0.045);
+  --control-hover: rgba(0, 0, 0, 0.075);
+  --control-press: rgba(0, 0, 0, 0.11);
+
+  --stroke: rgba(0, 0, 0, 0.09);
+  --stroke-strong: rgba(0, 0, 0, 0.28);
+  --divider: rgba(0, 0, 0, 0.07);
+
+  --text: rgba(0, 0, 0, 0.88);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.20), 0 0 0 0.5px rgba(0, 0, 0, 0.10);
+}
+
+/* San Francisco, via the system stack. Naming SF Pro directly would fail on
+   the machines that only have it as the system font, which is most of them. */
+:root[data-platform="macos"] html,
+:root[data-platform="macos"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+               "Helvetica Neue", sans-serif;
+  /* macOS renders type lighter than Windows at the same weight, so this stops
+     the interface looking heavier than the apps beside it. */
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+  background: transparent;
+}
+
+:root[data-platform="macos"] .title,
+:root[data-platform="macos"] h1,
+:root[data-platform="macos"] h2 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+               "Helvetica Neue", sans-serif;
+  letter-spacing: -0.012em;
+}
+
+:root[data-platform="macos"] code,
+:root[data-platform="macos"] pre,
+:root[data-platform="macos"] .cmd {
+  font-family: "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+/* The window itself: rounded further, blurred, and separated by shadow rather
+   than by a drawn edge. The radius is applied here because on macOS the web
+   view is transparent and the page draws its own corners - there is no
+   equivalent of SetWindowRgn clipping them from outside. */
+:root[data-platform="macos"] .panel {
+  border: none;
+  border-radius: var(--radius-window);
+  background: var(--bg);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Rounder controls throughout. Fluent's 4px corners are the single strongest
+   Windows tell after the colour. */
+:root[data-platform="macos"] .composer,
+:root[data-platform="macos"] .ask,
+:root[data-platform="macos"] .msg,
+:root[data-platform="macos"] .card,
+:root[data-platform="macos"] .menu { border-radius: var(--radius-control); }
+
+:root[data-platform="macos"] button,
+:root[data-platform="macos"] .chip,
+:root[data-platform="macos"] .pill,
+:root[data-platform="macos"] input,
+:root[data-platform="macos"] textarea { border-radius: var(--radius-small); }
+
+/* An overlay scrollbar: narrower, no track, and no arrows. macOS hides these
+   entirely until you scroll, which CSS cannot do - but making it a thin
+   floating sliver is most of the way there. */
+:root[data-platform="macos"] .thread::-webkit-scrollbar,
+:root[data-platform="macos"] .ask pre::-webkit-scrollbar,
+:root[data-platform="macos"] .msg pre::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+:root[data-platform="macos"] .thread::-webkit-scrollbar-track,
+:root[data-platform="macos"] .ask pre::-webkit-scrollbar-track,
+:root[data-platform="macos"] .msg pre::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+:root[data-platform="macos"] .thread::-webkit-scrollbar-thumb,
+:root[data-platform="macos"] .ask pre::-webkit-scrollbar-thumb,
+:root[data-platform="macos"] .msg pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 6px;
+}
+:root[data-platform="macos"][data-theme="light"] .thread::-webkit-scrollbar-thumb,
+:root[data-platform="macos"][data-theme="light"] .ask pre::-webkit-scrollbar-thumb,
+:root[data-platform="macos"][data-theme="light"] .msg pre::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.26);
+  background-clip: content-box;
+}
+
+/* macOS focus is a soft accent halo around the control, not Fluent's hard
+   underline beneath it. */
+:root[data-platform="macos"] input:focus-visible,
+:root[data-platform="macos"] textarea:focus-visible,
+:root[data-platform="macos"] button:focus-visible,
+:root[data-platform="macos"] .composer:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
