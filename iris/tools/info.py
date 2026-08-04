@@ -113,22 +113,52 @@ def _video_listing(html: str) -> str:
     except Exception:
         return ""
 
-    videos = []
+    videos: dict[str, str] = {}
+
+    # Two shapes, because YouTube uses a different one for a channel than for a
+    # search. Both are walked rather than pattern-matched, and either finding
+    # nothing is fine - a page that has neither is simply not a listing.
+
+    # A channel or playlist: a lockup with an id and some metadata beside it.
     for item in _walk(data, ("contentId", "metadata")):
         code = item.get("contentId")
-        if not isinstance(code, str) or len(code) != 11:
+        if not isinstance(code, str) or len(code) != 11 or code in videos:
             continue
         for holder in _walk(item["metadata"], ("content",)):
             title = holder.get("content")
             if isinstance(title, str) and len(title) > 3:
-                videos.append(f"  {title}  (youtu.be/{code})")
+                videos[code] = title
                 break
-        if len(videos) >= 30:
-            break
+
+    # Search results, and anything else built from videoRenderer.
+    for item in _walk(data, ("videoId", "title")):
+        code = item.get("videoId")
+        if not isinstance(code, str) or len(code) != 11 or code in videos:
+            continue
+        title = _title_text(item.get("title"))
+        if title:
+            videos[code] = title
 
     if not videos:
         return ""
-    return "Videos listed on this page, newest first:\n" + "\n".join(videos)
+    listed = list(videos.items())[:30]
+    return "Videos on this page:\n" + "\n".join(
+        f"  {title}  (youtu.be/{code})" for code, title in listed
+    )
+
+
+def _title_text(node) -> str:
+    """A YouTube title, which is a string in three different disguises."""
+    if isinstance(node, str):
+        return node
+    if not isinstance(node, dict):
+        return ""
+    if isinstance(node.get("simpleText"), str):
+        return node["simpleText"]
+    runs = node.get("runs")
+    if isinstance(runs, list):
+        return "".join(r.get("text", "") for r in runs if isinstance(r, dict))
+    return ""
 
 
 def _structured(html: str) -> str:

@@ -25,6 +25,12 @@ import xml.etree.ElementTree as ET
 PORT = 8060
 TIMEOUT = 6.0
 
+# Starting a channel is not like the other calls: the Roku holds the
+# connection open while the app loads, and YouTube took longer than six
+# seconds on real hardware - so launch reported "no answer, it may be off"
+# about a television that was busy doing exactly what it was told.
+LAUNCH_TIMEOUT = 25.0
+
 # What a person says, and what the remote actually calls it. The right-hand
 # side is ECP's spelling, which nobody would guess: rewind is "Rev", and replay
 # is "InstantReplay".
@@ -118,10 +124,10 @@ def _url(ip: str, path: str) -> str:
     return f"http://{ip}:{PORT}/{path.lstrip('/')}"
 
 
-def _request(ip: str, path: str, method: str = "GET") -> str:
+def _request(ip: str, path: str, method: str = "GET", timeout: float = TIMEOUT) -> str:
     request = urllib.request.Request(_url(ip, path), method=method)
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         if exc.code == 403:
@@ -262,7 +268,7 @@ def launch(ip: str, app_id: str, content_id: str = "", media_type: str = "") -> 
     path = f"launch/{app_id}"
     if query:
         path += "?" + urllib.parse.urlencode(query)
-    _request(ip, path, method="POST")
+    _request(ip, path, method="POST", timeout=LAUNCH_TIMEOUT)
 
 
 def find_app(ip: str, name: str) -> dict | None:
