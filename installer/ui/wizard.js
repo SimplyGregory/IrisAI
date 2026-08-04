@@ -7,7 +7,7 @@
  */
 
 const $ = (id) => document.getElementById(id);
-const LAST = 5;          // six steps, and then it is installed and gone
+const LAST = 4;          // five steps, and then it is installed and gone
 let at = 0;
 let choices = {};
 let options = {};

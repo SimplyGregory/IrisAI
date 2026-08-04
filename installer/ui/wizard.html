@@ -21,8 +21,7 @@
         <li data-step="1"><span class="pip"></span>AI configuration</li>
         <li data-step="2"><span class="pip"></span>AI safety</li>
         <li data-step="3"><span class="pip"></span>Browser</li>
-        <li data-step="4"><span class="pip"></span>Editor</li>
-        <li data-step="5"><span class="pip"></span>Roku</li>
+        <li data-step="4"><span class="pip"></span>Connections</li>
       </ol>
       <p class="rail-foot">Everything here can be changed later, in the panel
          or by editing <code>.env</code>.</p>
@@ -167,12 +166,13 @@
 
       <!-- 5 ---------------------------------------------------------------->
       <section class="step" data-step="4" hidden>
-        <h1>Editor</h1>
-        <p class="lede">Iris can work inside VS Code, if you want her to.</p>
+        <h1>Connections</h1>
+        <p class="lede">Other things on this machine and this network that Iris can
+          reach into. Both are optional, and either can be switched on later.</p>
 
         <label class="switch-row">
           <span>
-            <b>Connect to VS Code</b>
+            <b>VS Code</b>
             <span class="hint" id="vscode_hint">Installs a small extension so Iris can
               see the errors your editor is reporting, what file you have open and what
               you have selected, and can edit through the editor so Ctrl+Z undoes her
@@ -181,20 +181,14 @@
           </span>
           <button class="switch" id="vscode" role="switch" aria-checked="false"></button>
         </label>
-      </section>
-
-      <!-- 6 ---------------------------------------------------------------->
-      <section class="step" data-step="5" hidden>
-        <h1>Roku</h1>
-        <p class="lede">Iris can drive a Roku on your network - open apps, play and
-          pause, change the volume, and move around with the remote keys.</p>
 
         <label class="switch-row">
           <span>
-            <b>Connect to a Roku</b>
-            <span class="hint" id="roku_hint">Nothing is installed on the television.
-              Every Roku already answers on the network, so this only needs to know
-              which one is yours.</span>
+            <b>Roku</b>
+            <span class="hint" id="roku_hint">Open apps, play and pause, change the
+              volume and move around with the remote keys. Nothing is installed on the
+              television - every Roku already answers on the network, so this only
+              needs to know which one is yours.</span>
           </span>
           <button class="switch" id="roku" role="switch" aria-checked="false"></button>
         </label>
