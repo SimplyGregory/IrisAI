@@ -106,6 +106,8 @@ def roku_inspect(op: str, contains: str = "") -> str:
 
     except roku.RokuUnavailable as exc:
         return _unavailable(exc)
+    except roku.RokuRefused as exc:
+        return str(exc)
 
 
 @beta_tool
@@ -214,6 +216,9 @@ def roku_control(
 
     except roku.RokuUnavailable as exc:
         return _unavailable(exc)
+    except roku.RokuRefused as exc:
+        # Deliberately not prefixed with "not reachable": it answered.
+        return str(exc)
     except ValueError as exc:
         return str(exc)
 

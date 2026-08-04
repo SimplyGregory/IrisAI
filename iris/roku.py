@@ -48,6 +48,15 @@ class RokuUnavailable(Exception):
     """No Roku answered - off, asleep, or on a different network."""
 
 
+class RokuRefused(Exception):
+    """It answered and said no.
+
+    A different thing entirely from silence, and worth its own type: reporting
+    a refusal as "not reachable" sends someone to check cables and network
+    settings for a television that is plainly online and talking.
+    """
+
+
 # --- finding it -------------------------------------------------------------
 
 def discover(timeout: float = 4.0) -> list[dict]:
@@ -115,7 +124,25 @@ def _request(ip: str, path: str, method: str = "GET") -> str:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
             return response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        raise RokuUnavailable(f"the Roku refused {path}: HTTP {exc.code}") from exc
+        if exc.code == 403:
+            raise RokuRefused(
+                "The Roku answered but refused the command. It is online and "
+                "reachable - only control is being turned away.\n"
+                "This is its network access setting: Settings, System, Advanced "
+                "system settings, Control by mobile apps. It has four levels, and "
+                "the two middle ones behave differently for different callers - so "
+                "the official Roku phone app working does not mean this is open. "
+                "Set it to Default or Permissive.\n"
+                "If it is already, say so rather than repeating this advice: the "
+                "refusal would then be coming from whatever is on screen, and the "
+                "answer is to try again from the home screen."
+            ) from exc
+        if exc.code == 400:
+            raise RokuRefused(
+                f"The Roku did not understand {path}. The key name or the deep "
+                "link is not one it recognises."
+            ) from exc
+        raise RokuRefused(f"The Roku refused {path}: HTTP {exc.code}.") from exc
     except (urllib.error.URLError, socket.timeout, OSError) as exc:
         raise RokuUnavailable(
             f"no answer from {ip}. It may be off, asleep, or on another network. "
