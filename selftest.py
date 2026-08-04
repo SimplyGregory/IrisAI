@@ -363,6 +363,29 @@ def panel_window():
 # --- building --------------------------------------------------------------
 
 
+def _run_showing_output(argv: list[str]) -> int:
+    """Run a command and print what it says, line by line as it says it.
+
+    Captured explicitly rather than letting the child inherit this terminal,
+    which looks like the simpler option and does not work here. Checking that
+    the panel imports means importing panel/app.py, and that calls
+    spawn.hide_console_children() at module level - which patches
+    subprocess.Popen process-wide to add CREATE_NO_WINDOW so the app never
+    flashes a blank console. A child started afterwards then prints nowhere.
+
+    Right for the app, fatal here: it silently swallowed every line PyInstaller
+    produced, so a failed build would have reported nothing at all - in the one
+    script whose entire job is saying what went wrong.
+    """
+    process = subprocess.Popen(
+        argv, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, bufsize=1, errors="replace",
+    )
+    for line in process.stdout:
+        print(line.rstrip())
+    return process.wait()
+
+
 def build() -> int:
     """Build for whichever machine this is."""
     if host.system() == "Darwin":
@@ -370,16 +393,16 @@ def build() -> int:
         if not script.is_file():
             print(f"  {RED}build_macos.sh is missing{OFF}")
             return 1
-        print(f"\n  building the macOS app - this takes several minutes\n")
+        print("\n  building the macOS app - this takes several minutes\n")
         script.chmod(0o755)
-        return subprocess.call(["/bin/bash", str(script)], cwd=str(ROOT))
+        return _run_showing_output(["/bin/bash", str(script)])
 
     script = ROOT / "build.py"
     if not script.is_file():
         print(f"  {RED}build.py is missing{OFF}")
         return 1
-    print(f"\n  building the Windows exe - this takes a few minutes\n")
-    return subprocess.call([sys.executable, str(script)], cwd=str(ROOT))
+    print("\n  building the Windows exe - this takes a few minutes\n")
+    return _run_showing_output([sys.executable, str(script)])
 
 
 # --- the run ---------------------------------------------------------------
