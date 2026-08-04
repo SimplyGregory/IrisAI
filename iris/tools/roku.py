@@ -141,9 +141,10 @@ def roku_control(
               One keystroke per character, so keep it short.
       power   `state` "on" or "off". Off works on every Roku; on only reaches
               Roku TVs, since a player has no screen to wake.
-      volume  `state` "up", "down" or "mute", `times` steps. Only works where
-              the Roku drives the audio - a TV, or a player over HDMI-ARC. On
-              a player feeding an external amplifier it does nothing.
+      volume  `state` "up", "down" or "mute", `times` steps. Only Roku TVs
+              control their own volume. On a streaming player this is checked
+              first and refused with an explanation, because the keys would be
+              accepted and change nothing.
 
     Args:
         op: One of launch, key, type, power, volume.
@@ -197,18 +198,27 @@ def roku_control(
             wanted = state.strip().lower()
             if wanted not in ("on", "off"):
                 return "power needs state 'on' or 'off'."
-            roku.press(where, "poweron" if wanted == "on" else "poweroff")
-            if wanted == "on":
+            if not roku.is_tv(where):
                 return (
-                    "Sent power on. Only Roku TVs answer this; a streaming player "
-                    "has no screen of its own and will ignore it."
+                    "This is a Roku player, not a Roku TV. It has no screen of its "
+                    "own to turn on or off - the television it is plugged into does, "
+                    "and that is not reachable from here. Nothing was sent."
                 )
-            return "Sent power off."
+            roku.press(where, "poweron" if wanted == "on" else "poweroff")
+            return f"Sent power {wanted}."
 
         # volume
         wanted = state.strip().lower()
         if wanted not in ("up", "down", "mute"):
             return "volume needs state 'up', 'down' or 'mute'."
+
+        # Asked before sending rather than after. The keys are accepted by a
+        # player and change nothing, so sending them produces a report of
+        # success and a question the user has to answer by looking at the
+        # television - when the answer was knowable here all along.
+        possible, why = roku.has_own_volume(where)
+        if not possible:
+            return why
         roku.press(where, {"up": "volumeup", "down": "volumedown", "mute": "mute"}[wanted], times)
         if wanted == "mute":
             return "Toggled mute."

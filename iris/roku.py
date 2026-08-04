@@ -319,6 +319,45 @@ def can_control(ip: str) -> tuple[bool, str]:
         return False, str(exc)
 
 
+def is_tv(ip: str) -> bool:
+    """Whether this is a Roku TV rather than a streaming player.
+
+    The distinction decides whether volume and power mean anything. A player
+    does not control the audio - the television or receiver does - and the
+    volume buttons on its own remote reach them over HDMI-CEC or infrared,
+    neither of which arrives over the network. So the keys are accepted,
+    acknowledged, and change nothing.
+    """
+    try:
+        return device_info(ip).get("is-tv", "false").lower() == "true"
+    except (RokuUnavailable, RokuRefused):
+        return False
+
+
+def has_own_volume(ip: str) -> tuple[bool, str]:
+    """Whether volume keys will do anything here, and why not if they will not."""
+    try:
+        info = device_info(ip)
+    except (RokuUnavailable, RokuRefused) as exc:
+        return False, str(exc)
+
+    if info.get("is-tv", "false").lower() == "true":
+        return True, ""
+    # Private listening is the exception: with headphones in the remote or the
+    # phone app, the Roku is driving the audio after all and the keys work.
+    if info.get("headphones-connected", "false").lower() == "true":
+        return True, ""
+
+    return False, (
+        f"This is a {info.get('model-name', 'Roku player')}, not a Roku TV, so it "
+        "does not control the volume - the television or receiver does. Volume "
+        "keys sent over the network are accepted and do nothing. The volume "
+        "buttons on the Roku's own remote work over HDMI-CEC or infrared, which "
+        "is not something reachable from here. Say this plainly rather than "
+        "sending the keys and asking whether it got louder."
+    )
+
+
 def is_awake(ip: str) -> bool:
     """Whether the screen is on. Roku TVs report this; players do not."""
     try:
