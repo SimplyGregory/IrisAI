@@ -284,15 +284,15 @@ def find_app(ip: str, name: str) -> dict | None:
     return None
 
 
+# One line, for the setup window. The long version raised with RokuRefused is
+# written for Claude - it tells her what to conclude and what not to say - and
+# putting that in front of a person mid-setup is both too much to read and
+# addressed to the wrong reader. Someone at this point needs the menu path and
+# nothing else.
 BLOCKED_ADVICE = (
-    "Control is turned off on this Roku. On the television:\n"
-    "  Settings > System > Advanced system settings > Control by mobile apps\n"
-    "  > Network access > Enabled   (older software calls it Permissive)\n"
-    "Recent Roku software ships this as Limited, which refuses outside control.\n"
-    "Your phone controlling the Roku does not mean it is already on: Limited "
-    "still allows Roku's own app and turns everything else away.\n"
-    "This needs the physical remote - the menus cannot be walked with key "
-    "presses while key presses are the thing being refused."
+    "On the Roku: Settings > System > Advanced system settings > Control by "
+    "mobile apps > Network access. Set it to Enabled (older software calls it "
+    "Permissive)."
 )
 
 

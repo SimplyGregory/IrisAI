@@ -114,13 +114,15 @@ class Api:
             # Recent Roku software refuses outside control by default, so a
             # device can answer every question and then take no instruction -
             # which reads as the feature being broken rather than switched off.
-            works, why = roku.can_control(device["ip"])
+            works, _why = roku.can_control(device["ip"])
             listed.append({
                 "ip": device["ip"],
                 "name": device["name"],
                 "model": model,
                 "controllable": works,
-                "problem": "" if works else why,
+                # The short form. What can_control returns is written for
+                # Claude to act on, not for someone halfway through setup.
+                "problem": "" if works else roku.BLOCKED_ADVICE,
             })
         return listed
 
