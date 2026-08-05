@@ -77,6 +77,8 @@ def discord_send(to: str, message: str, channel: str = "") -> str:
                 "You are not signed in to Discord. I have opened a login window - "
                 "sign in, then ask me to send this again."
             )
+        # Signed in, so clear the login tab and any strays before working.
+        discord.tidy_tabs(page)
         where = discord.resolve(page, to, channel)
     except discord.NotLoggedIn as exc:
         return str(exc)

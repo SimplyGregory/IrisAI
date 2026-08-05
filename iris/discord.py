@@ -35,19 +35,59 @@ class NotLoggedIn(Exception):
 
 # --- the page ---------------------------------------------------------------
 
-def _page():
-    """Discord's tab in Iris's own Chrome, opened if it is not already there."""
+def _reset() -> None:
+    """Drop the cached Chrome connection so the next call launches a fresh one.
+
+    Needed because the login window is a real window the user can close, and
+    when they do the whole browser connection dies under us - the next Playwright
+    call then throws TargetClosedError against a browser that is gone. Clearing
+    the cache makes _ensure_page relaunch cleanly, and the profile persists, so
+    the relaunched Chrome is still logged in.
+    """
     from iris.tools import browser
 
-    page = browser._ensure_page()
-    if isinstance(page, str):
-        # _ensure_page reports trouble by returning the sentence, not raising.
-        raise DiscordUnavailable(page)
+    browser._playwright = browser._browser = browser._page = browser._launched = None
 
-    if "discord.com" not in (page.url or ""):
-        page.goto(APP_URL, wait_until="domcontentloaded", timeout=30000)
-        time.sleep(2)  # the SPA needs a moment to draw after the document lands
-    return page
+
+def _page():
+    """Discord's tab in Iris's own Chrome, opened if it is not already there.
+
+    Tries twice: if the browser was closed between calls, the first attempt
+    throws, the connection is reset, and the second relaunches it.
+    """
+    from iris.tools import browser
+
+    for attempt in range(2):
+        page = browser._ensure_page()
+        if isinstance(page, str):
+            raise DiscordUnavailable(page)
+        try:
+            if "discord.com" not in (page.url or ""):
+                page.goto(APP_URL, wait_until="domcontentloaded", timeout=30000)
+                time.sleep(2)  # the SPA needs a moment to draw after the document lands
+            return page
+        except Exception as exc:  # noqa: BLE001 - usually TargetClosedError
+            if attempt == 0:
+                _reset()
+                continue
+            raise DiscordUnavailable(
+                "The Discord window was closed. Ask me again and I will reopen it."
+            ) from exc
+
+
+def tidy_tabs(page) -> None:
+    """Close every tab but the working one.
+
+    After signing in, the login tab has done its job, and stray blank tabs pile
+    up across a session. Only the page actually being used is kept - the send
+    needs one tab, not the clutter of all of them.
+    """
+    try:
+        for other in list(page.context.pages):
+            if other is not page and not other.is_closed():
+                other.close()
+    except Exception:
+        pass
 
 
 def logged_in(page) -> bool:
@@ -72,7 +112,13 @@ def status() -> bool:
     cookies, which is the only thing that actually knows, and a saved flag would
     drift out of sync the moment a session expired.
     """
-    return logged_in(_page())
+    page = _page()
+    signed_in = logged_in(page)
+    if signed_in:
+        # In and confirmed - so the login tab and any strays can go now, which
+        # is what "close it once I've logged in" means in practice.
+        tidy_tabs(page)
+    return signed_in
 
 
 def open_login() -> bool:
