@@ -126,8 +126,16 @@ def _launch_chrome() -> str | None:
         args.append(f"--user-data-dir={config.CHROME_PROFILE_DIR}")
 
     global _launched
+
+    # CREATE_NEW_CONSOLE is a Windows-only flag and does not even exist as a
+    # constant on a Mac, where referencing it raises AttributeError - so it is
+    # Windows-only here too. Chrome is a GUI app and shows its own window on
+    # both; the flag only ever kept its console off Iris's.
+    from iris import platform
+
+    flags = {"creationflags": subprocess.CREATE_NEW_CONSOLE} if platform.is_windows() else {}
     try:
-        proc = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_CONSOLE)  # the user's window
+        proc = subprocess.Popen(args, **flags)
         # Remembered only for the isolated profile - the one Iris owns and may
         # close on the way out. Never the user's own Chrome.
         if not config.USE_REAL_CHROME_PROFILE:
