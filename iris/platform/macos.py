@@ -163,6 +163,16 @@ def bridge_address() -> str:
 
 # --- the permissions that make everything else work ------------------------
 
+def hide_offscreen_window():
+    """No taskbar to clear here. An off-screen Chrome on a Mac is a dock and
+    mission-control matter, left for when the port is actually run."""
+    return None
+
+
+def show_window(handle) -> None:
+    return None
+
+
 def kill_process_tree(pid: int) -> None:
     """End a process and its children. pkill -P gets the immediate children;
     the process itself is signalled directly."""

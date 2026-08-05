@@ -186,6 +186,15 @@ class Api:
                 target=self._ask_aloud, args=(request, question, kind),
                 name="panel-ask-aloud", daemon=True,
             ).start()
+        elif config.SPEAK_REPLIES:
+            # Voice control off but speech on: read the question aloud without
+            # opening the microphone. Her replies are spoken, so a question she
+            # is waiting on should be too - a card appearing in silence, with
+            # only the working cue beeping, is not obviously a question at all.
+            threading.Thread(
+                target=lambda: text_mode._say(question),
+                name="panel-ask-speak", daemon=True,
+            ).start()
 
         answered.wait()
         return self._pending.pop(request)[1]

@@ -61,11 +61,15 @@ def _reset() -> None:
     the cache makes _ensure_page relaunch cleanly, and the profile persists, so
     the relaunched Chrome is still logged in.
     """
-    global _dpage
+    global _dpage, _dhwnd
     from iris.tools import browser
 
     browser._playwright = browser._browser = browser._page = browser._launched = None
     _dpage = None
+    _dhwnd = None  # a relaunched Chrome has a new window; the old handle is dead
+
+
+_dhwnd = None  # handle to Discord's window, so it can be shown again after hiding
 
 
 def _position(page, visible: bool) -> None:
@@ -74,7 +78,17 @@ def _position(page, visible: bool) -> None:
     Wrapped so a failure here can never stop a send: if the window will not
     move, it just stays where it is - visible, which is the old behaviour - and
     the message still goes. Invisibility is a nicety; delivering is the job.
+
+    Off-screen alone leaves a taskbar button, so after parking it there the
+    window is also hidden outright (Windows), which clears the taskbar and
+    Alt-Tab too. For login it is shown and brought back on-screen.
     """
+    global _dhwnd
+    from iris import platform
+
+    if visible and _dhwnd is not None:
+        platform.show_window(_dhwnd)  # unhide before moving it into view
+
     try:
         session = page.context.new_cdp_session(page)
         window = session.send("Browser.getWindowForTarget")
@@ -84,6 +98,12 @@ def _position(page, visible: bool) -> None:
         })
     except Exception:
         pass
+
+    if not visible:
+        time.sleep(0.3)  # let it actually reach -32000 before we look for it there
+        handle = platform.hide_offscreen_window()
+        if handle is not None:
+            _dhwnd = handle
 
 
 def _page():

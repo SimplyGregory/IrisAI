@@ -343,6 +343,54 @@ def kill_process_tree(pid: int) -> None:
     )
 
 
+def hide_offscreen_window():
+    """Hide the window parked far off-screen, taskbar entry and all.
+
+    Off-screen positioning leaves a taskbar button; SW_HIDE takes the window off
+    the screen, the taskbar and Alt-Tab entirely. Automation over CDP keeps
+    working on a hidden window - it drives the page, not the paint.
+
+    Found by position, not by class or title: the caller has just moved its own
+    window to around -32000, where nothing legitimate ever sits, so a window
+    there is unambiguously the one to hide - never the user's real browser,
+    which class-name matching would have risked. Returns a handle to show it
+    again, or None if none was found.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    found = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _lparam):
+        if user32.IsWindowVisible(hwnd):
+            rect = wintypes.RECT()
+            if user32.GetWindowRect(hwnd, ctypes.byref(rect)) and rect.left <= -20000:
+                found.append(hwnd)
+        return True
+
+    try:
+        user32.EnumWindows(visit, 0)
+        for hwnd in found:
+            user32.ShowWindow(hwnd, 0)  # SW_HIDE
+    except Exception:
+        return None
+    return found[0] if found else None
+
+
+def show_window(handle) -> None:
+    """Bring a previously hidden window back, e.g. for a login it must show."""
+    if handle is None:
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.user32.ShowWindow(handle, 5)  # SW_SHOW
+    except Exception:
+        pass
+
+
 def permissions_missing() -> list[str]:
     """Nothing to grant. Windows lets a program click and screenshot freely.
 
