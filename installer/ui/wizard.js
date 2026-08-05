@@ -49,6 +49,7 @@ function collect() {
     vscode: $("vscode").classList.contains("on"),
     roku: $("roku").classList.contains("on"),
     roku_ip: chosenRoku,
+    discord: $("discord").classList.contains("on"),
   };
 }
 

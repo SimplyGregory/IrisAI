@@ -31,6 +31,7 @@ DEFAULTS = {
     "vscode": False,
     "roku": False,
     "roku_ip": "",
+    "discord": False,
 }
 
 MODELS = [
@@ -114,6 +115,16 @@ IRIS_CDP_PORT={c["cdp_port"]}
 # 0 = off, and the two VS Code tools are not loaded at all - so they cost
 #     nothing on a machine that does not use them.
 IRIS_VSCODE={1 if c["vscode"] else 0}
+
+
+# --- Discord ---------------------------------------------------------------
+# 1 = the discord_send tool is available. It drives the real Discord web app in
+#     Iris's own browser profile - no API and no token. You sign in once, in a
+#     window that opens for it, and the session is remembered.
+# 0 = off, and the tool is not loaded at all.
+# Automating your own account is discouraged by Discord's terms; it is meant
+# for the odd personal message, not bulk sending.
+IRIS_DISCORD={1 if c["discord"] else 0}
 
 
 # --- Television ------------------------------------------------------------
