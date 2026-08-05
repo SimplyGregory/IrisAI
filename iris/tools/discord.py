@@ -15,6 +15,27 @@ from iris.confirm import confirm
 
 
 @beta_tool
+def discord_login() -> str:
+    """Make sure the user is signed in to Discord. Call this FIRST.
+
+    Before asking who to message or what to say, call this. If it opens a login
+    window, tell the user to sign in and wait until they say they are ready -
+    do not gather the message first and lose it. Signing in is a one-time thing;
+    the session is remembered afterwards.
+    """
+    try:
+        if discord.status():
+            return "Signed in to Discord and ready to send."
+        discord.open_login()
+    except discord.DiscordUnavailable as exc:
+        return f"Discord is not reachable. {exc}"
+    return (
+        "Not signed in. I have opened a Discord login window - sign in there, "
+        "then tell me to go ahead. It only needs doing once."
+    )
+
+
+@beta_tool
 @confirm("confirm")
 def discord_send(to: str, message: str, channel: str = "") -> str:
     """Send a Discord message, as the user, through their logged-in browser.
@@ -46,8 +67,16 @@ def discord_send(to: str, message: str, channel: str = "") -> str:
         return "There is nothing to send - the message is empty."
 
     try:
-        discord.ensure_login(on_note=lambda _m: None)
         page = discord._page()
+        # Checked here too, not only in discord_login: the session can lapse
+        # between the two calls, and gathering a message only to fail at the
+        # send is exactly the ordering this is meant to avoid.
+        if not discord.logged_in(page):
+            discord.open_login()
+            return (
+                "You are not signed in to Discord. I have opened a login window - "
+                "sign in, then ask me to send this again."
+            )
         where = discord.resolve(page, to, channel)
     except discord.NotLoggedIn as exc:
         return str(exc)
@@ -73,6 +102,8 @@ def discord_send(to: str, message: str, channel: str = "") -> str:
 
     try:
         discord.send(page, where["url"], message)
+    except discord.NotLoggedIn as exc:
+        return str(exc)  # signed out between resolving and sending
     except discord.DiscordUnavailable as exc:
         return f"Could not send it. {exc}"
 
@@ -80,4 +111,4 @@ def discord_send(to: str, message: str, channel: str = "") -> str:
     return f"Sent to {target}."
 
 
-TOOLS = [discord_send]
+TOOLS = [discord_login, discord_send]

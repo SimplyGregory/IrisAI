@@ -65,41 +65,29 @@ def logged_in(page) -> bool:
         return False
 
 
-def ensure_login(on_note=lambda _msg: None) -> None:
-    """Make sure we are logged in, opening a visible tab to sign in if not.
+def status() -> bool:
+    """Whether this profile has a live Discord session right now.
 
-    The one moment the window has to be seen: nobody can type a password into a
-    tab positioned off the edge of the screen. It waits for the session to
-    appear - the user logging in - or for them to give up and close the tab.
+    Checked live rather than remembered: the session lives in the browser's
+    cookies, which is the only thing that actually knows, and a saved flag would
+    drift out of sync the moment a session expired.
+    """
+    return logged_in(_page())
+
+
+def open_login() -> bool:
+    """Bring up the visible login page if needed. Returns whether already in.
+
+    Deliberately does not wait. A tool that blocks for three minutes freezes
+    the whole turn; instead this opens the window and returns, and the user
+    saying "done" is what moves things on. Chrome is already a visible window,
+    so there is nothing to reveal - the page just needs loading.
     """
     page = _page()
     if logged_in(page):
-        return
-
-    # Chrome is already a visible window, so there is nothing to reveal - the
-    # login page just needs loading and the user needs telling why it appeared.
-    # (An off-screen "hidden" mode is a separate feature; until it exists,
-    # seeing what Iris is doing on Discord is a feature, not a leak.)
-    on_note(
-        "You are not signed in to Discord in Iris's browser. The window in front "
-        "of you is on the Discord login page - sign in there, and it carries on "
-        "by itself. It will not ask again."
-    )
+        return True
     page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
-
-    # Up to three minutes, which is long enough to fetch a phone for 2FA.
-    deadline = time.time() + 180
-    while time.time() < deadline:
-        time.sleep(2)
-        try:
-            if logged_in(page):
-                return
-        except Exception:
-            pass
-    raise NotLoggedIn(
-        "Discord was not signed in within three minutes. Nothing was sent. Ask "
-        "me again once you are logged in."
-    )
+    return False
 
 
 # --- reading names off the page --------------------------------------------
@@ -230,6 +218,16 @@ def send(page, url: str, message: str) -> None:
     """Open the target and type the message into the real composer, then Enter."""
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     time.sleep(1.5)
+
+    # A session can expire between logging in and sending. Landing on the login
+    # page, or losing the app shell, means exactly that - and it is a different
+    # thing from "the message box is missing", so it gets its own error and its
+    # own advice: sign in again, do not just retry.
+    if not logged_in(page) or "/login" in (page.url or ""):
+        raise NotLoggedIn(
+            "You have been signed out of Discord, so nothing was sent. Sign in "
+            "again - I can open the window - and ask me once more."
+        )
 
     # Discord's box is a contenteditable slate, not a plain input. Focused by
     # role, then typed into with real key events so its own handlers fire the

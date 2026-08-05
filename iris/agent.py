@@ -181,6 +181,13 @@ ROKU_GUIDANCE = """Working with the Roku:
 - There is no API for Roku settings, and search was withdrawn from the protocol. Both mean walking the on-screen menus with roku_control key presses, the way a person would with the remote. Say that is what you are doing; it is slow and worth narrating.
 - Volume only works where the Roku drives the audio. On a player feeding a separate amplifier the keys are accepted and nothing happens, so do not promise it worked - say what you sent."""
 
+DISCORD_GUIDANCE = """
+Sending a Discord message:
+- Check they are signed in BEFORE gathering anything. The moment a Discord message is wanted, call discord_login first - not after asking who or what. If it opens a login window, tell them to sign in and wait until they say they are ready, then carry on. Asking what to say and only then finding they are logged out wastes what they told you.
+- You choose two things and nothing else: the name to send to, and the message. You never see conversations, other people's messages, or anything else on Discord - that is deliberate, so do not try to get at it.
+- Confirm before sending. This reaches another person, so say exactly what you are about to send and to whom, and only send if they agree.
+- If a send comes back saying they were signed out, tell them plainly and offer to open the login again. Do not retry the send blindly."""
+
 # Only added when the bridge extension is connected. Without it Claude has no
 # reason to prefer the VS Code tools, and would keep reading files off disk -
 # which is exactly the case the bridge exists to improve on.
@@ -265,6 +272,7 @@ class Iris:
         """The prompt plus whatever Iris has been asked to remember."""
         base = SYSTEM_PROMPT + (VSCODE_GUIDANCE if config.VSCODE else "")
         base += ROKU_GUIDANCE if config.ROKU else ""
+        base += DISCORD_GUIDANCE if config.DISCORD else ""
         remembered = memory.load()
         if not remembered:
             return base
