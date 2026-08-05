@@ -71,6 +71,39 @@ def _reset() -> None:
 
 _dhwnd = None  # handle to Discord's window, so it can be shown again after hiding
 
+# Discord plays its notification pings through new Audio(url).play(). Forcing
+# every media element muted at the moment play() is called silences them without
+# touching the user's Discord settings. Installed before Discord's own code runs,
+# so the patch is already in place when the first ping fires.
+_MUTE_BODY = (
+    "try {"
+    "  const op = HTMLMediaElement.prototype.play;"
+    "  HTMLMediaElement.prototype.play = function () {"
+    "    try { this.muted = true; this.volume = 0; } catch (e) {}"
+    "    return op.apply(this, arguments);"
+    "  };"
+    "  document.querySelectorAll('audio,video').forEach("
+    "    el => { try { el.muted = true; el.volume = 0; } catch (e) {} });"
+    "} catch (e) {}"
+)
+
+
+def _mute(page) -> None:
+    """Silence Discord's notification sounds in this tab. Best-effort.
+
+    Two forms of the same patch, because the two hooks want different shapes:
+    add_init_script runs a statement on every future navigation (so it must be
+    invoked), and evaluate takes a function it calls itself (so it must not be).
+    """
+    try:
+        page.add_init_script(f"(() => {{ {_MUTE_BODY} }})()")
+    except Exception:
+        pass
+    try:
+        page.evaluate(f"() => {{ {_MUTE_BODY} }}")
+    except Exception:
+        pass
+
 
 def _position(page, visible: bool) -> None:
     """Move Discord's window on- or off-screen. Cosmetic and best-effort.
@@ -137,18 +170,33 @@ def _page():
             context = main.context
             before = set(context.pages)
 
-            # A window of its own via CDP. newWindow is what keeps it apart from
-            # the browsing window; a plain new_page would land beside those tabs.
+            # A window of its own via CDP - newWindow keeps it apart from the
+            # browsing window's tabs. Opened blank, and moved off-screen through
+            # the same CDP session the instant it exists, before Discord loads
+            # into it: that is what stops it flashing on-screen while it works
+            # out whether you are already signed in.
+            cdp = context.browser.new_browser_cdp_session()
             try:
-                context.browser.new_browser_cdp_session().send(
-                    "Target.createTarget", {"url": APP_URL, "newWindow": True}
-                )
-                time.sleep(1.0)
+                made = cdp.send("Target.createTarget", {"url": "about:blank", "newWindow": True})
+                if _hidden() and made.get("targetId"):
+                    window = cdp.send("Browser.getWindowForTarget", {"targetId": made["targetId"]})
+                    cdp.send("Browser.setWindowBounds", {
+                        "windowId": window["windowId"], "bounds": _OFFSCREEN,
+                    })
             except Exception:
                 pass
 
-            fresh = [p for p in context.pages if p not in before]
-            _dpage = fresh[-1] if fresh else context.new_page()
+            _dpage = None
+            for _ in range(20):  # let the new page register - ~2s at the outside
+                fresh = [p for p in context.pages if p not in before]
+                if fresh:
+                    _dpage = fresh[-1]
+                    break
+                time.sleep(0.1)
+            if _dpage is None:
+                _dpage = context.new_page()
+
+            _mute(_dpage)  # patch audio before Discord's own scripts run
             if "discord.com" not in (_dpage.url or ""):
                 _dpage.goto(APP_URL, wait_until="domcontentloaded", timeout=30000)
             time.sleep(2)  # the SPA needs a moment to draw
