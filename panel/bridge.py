@@ -192,12 +192,26 @@ class Api:
             # is waiting on should be too - a card appearing in silence, with
             # only the working cue beeping, is not obviously a question at all.
             threading.Thread(
-                target=lambda: text_mode._say(question),
+                target=self._speak_question, args=(question,),
                 name="panel-ask-speak", daemon=True,
             ).start()
 
         answered.wait()
         return self._pending.pop(request)[1]
+
+    def _speak_question(self, question: str) -> None:
+        """Speak a pending question, with the working cue silenced while it runs.
+
+        The confirmation happens mid-turn, so the ding-ding is still pulsing -
+        and it shares the one sound device with speech. Without pausing it, the
+        next ding starts through sounddevice and cuts the question off after a
+        word or two. cues.quiet() holds it silent until the speech has finished.
+        """
+        from iris.voice import cues
+
+        with cues.quiet():
+            text_mode._say(question)
+            text_mode._wait_for_speech()
 
     def _ask_aloud(self, request: int, question: str, kind: str) -> None:
         """Speak a question and listen for the answer, asking again if none comes.
