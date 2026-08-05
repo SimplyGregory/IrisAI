@@ -72,6 +72,7 @@ bridge_address = _impl.bridge_address        # where the VS Code bridge listens
 # so on Windows this is always empty - but callers should not have to know
 # that, or they would need a platform check at every call site.
 permissions_missing = _impl.permissions_missing
+kill_process_tree = _impl.kill_process_tree  # end a process and its children
 
 # Windows and screen furniture.
 list_windows = _impl.list_windows          # every visible window
@@ -93,7 +94,7 @@ __all__ = [
     "SHELL_TOOL_NAME", "SHELL_DISPLAY_NAME",
     "shell_argv", "quiet_process", "speak_native", "list_voices",
     "default_install_dir", "launch", "open_url", "create_shortcut", "theme",
-    "bridge_address", "permissions_missing",
+    "bridge_address", "permissions_missing", "kill_process_tree",
     "list_windows", "window_action", "active_window_title", "open_window_titles",
     "list_apps", "ui_elements", "ui_do",
 ]

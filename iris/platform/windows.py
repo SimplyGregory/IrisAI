@@ -334,6 +334,15 @@ def ui_do(element: dict, action: str, text: str = "") -> tuple[bool, str]:
     return False, f"Unknown action {action!r}."
 
 
+def kill_process_tree(pid: int) -> None:
+    """End a process and every child it spawned. Chrome is a whole tree."""
+    subprocess.run(
+        ["taskkill", "/F", "/T", "/PID", str(pid)],
+        capture_output=True,
+        **quiet_process(),
+    )
+
+
 def permissions_missing() -> list[str]:
     """Nothing to grant. Windows lets a program click and screenshot freely.
 

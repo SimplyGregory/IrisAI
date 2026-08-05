@@ -20,6 +20,13 @@ _playwright = None
 _browser = None
 _page = None
 
+# The Chrome process this session launched, when it launched its own. Kept so
+# shutdown can close it - an orphaned Chrome left running after Iris quits is a
+# window nobody asked to keep, sometimes with a logged-in session in it. Only
+# ever set for the isolated profile: in real-profile mode Iris attaches to the
+# user's Chrome, which it must never close.
+_launched = None
+
 # JS that tags visible interactive elements and returns a description of each.
 _SNAPSHOT_JS = """
 () => {
@@ -118,8 +125,13 @@ def _launch_chrome() -> str | None:
         config.CHROME_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
         args.append(f"--user-data-dir={config.CHROME_PROFILE_DIR}")
 
+    global _launched
     try:
-        subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_CONSOLE)  # the user's window
+        proc = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_CONSOLE)  # the user's window
+        # Remembered only for the isolated profile - the one Iris owns and may
+        # close on the way out. Never the user's own Chrome.
+        if not config.USE_REAL_CHROME_PROFILE:
+            _launched = proc
     except OSError as exc:
         return f"Could not start Chrome: {exc}"
 
@@ -625,8 +637,22 @@ def browser_back() -> str:
 
 
 def shutdown() -> None:
-    """Detach from Chrome. Chrome itself keeps running."""
-    global _playwright, _browser, _page
+    """Detach from Chrome, and close the copy Iris launched herself.
+
+    The isolated-profile Chrome is Iris's own window; left running after she
+    quits it sits orphaned on screen, sometimes still signed into something. So
+    it is closed here. The user's own Chrome, in real-profile mode, is only
+    detached from and never closed - _launched is set only for the isolated one.
+    """
+    global _playwright, _browser, _page, _launched
+
+    # Ask the isolated Chrome to close itself cleanly, before disconnecting.
+    if _launched is not None and _browser is not None:
+        try:
+            _browser.new_browser_cdp_session().send("Browser.close")
+        except Exception:
+            pass
+
     try:
         if _browser is not None:
             _browser.close()
@@ -637,7 +663,19 @@ def shutdown() -> None:
             _playwright.stop()
     except Exception:
         pass
-    _playwright = _browser = _page = None
+
+    # Backstop: if Browser.close did not take, end the tree we started. Chrome
+    # is several processes, so terminating the launcher alone can leave workers.
+    if _launched is not None:
+        try:
+            if _launched.poll() is None:
+                from iris import platform
+
+                platform.kill_process_tree(_launched.pid)
+        except Exception:
+            pass
+
+    _playwright = _browser = _page = _launched = None
 
 
 TOOLS = [

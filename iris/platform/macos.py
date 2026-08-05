@@ -163,6 +163,19 @@ def bridge_address() -> str:
 
 # --- the permissions that make everything else work ------------------------
 
+def kill_process_tree(pid: int) -> None:
+    """End a process and its children. pkill -P gets the immediate children;
+    the process itself is signalled directly."""
+    import os
+    import signal
+
+    subprocess.run(["/usr/bin/pkill", "-TERM", "-P", str(pid)], capture_output=True)
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+
 def permissions_missing() -> list[str]:
     """Which macOS permissions are not granted, in words a user can act on.
 
