@@ -79,6 +79,13 @@ MEMORY_FILE = _env("IRIS_MEMORY", "memory.json")
 # that do not use it. Turned on by the setup wizard.
 VSCODE = _env("IRIS_VSCODE", "0") == "1"
 
+# --- Discord ---------------------------------------------------------------
+# Whether the discord_send tool is registered. It drives the real Discord web
+# app in Iris's own Chrome profile - no API, no token. Off means the tool does
+# not exist. Claude, when it is on, only ever chooses a name and a message;
+# everything else is handled in Python and never reaches the model.
+DISCORD = _env("IRIS_DISCORD", "0") == "1"
+
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.
 # Nothing is installed on the television: every Roku serves this already. Off

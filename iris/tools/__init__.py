@@ -7,12 +7,13 @@ of shipping every schema every time.
 """
 
 from iris import confirm as _confirm
+from iris import discord as _discord
 from iris import editor as _editor
 from iris import roku as _roku
 from iris.redact import bind_variables
 from iris.tools import (
-    apps, browser, files, info, interaction, mic, myself, recall, roku, screen,
-    shell, uia, vscode, windows,
+    apps, browser, discord, files, info, interaction, mic, myself, recall, roku,
+    screen, shell, uia, vscode, windows,
 )
 
 # reveal_redacted takes a placeholder as its *subject*, so resolving its
@@ -77,6 +78,8 @@ ALL_TOOLS = [
         # Same bargain as the editor above: two schemas on every request is
         # not worth carrying for someone who owns no Roku.
         *(roku.TOOLS if _roku.enabled() else []),
+        # Off unless explicitly turned on; drives the browser, unverified.
+        *(discord.TOOLS if _discord.enabled() else []),
     ]
 ]
 
@@ -89,6 +92,7 @@ __all__ = [
     "interaction",
     "mic",
     "myself",
+    "discord",
     "recall",
     "screen",
     "shell",
