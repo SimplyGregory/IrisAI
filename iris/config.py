@@ -79,20 +79,6 @@ MEMORY_FILE = _env("IRIS_MEMORY", "memory.json")
 # that do not use it. Turned on by the setup wizard.
 VSCODE = _env("IRIS_VSCODE", "0") == "1"
 
-# --- Discord ---------------------------------------------------------------
-# Whether the discord_send tool is registered. It drives the real Discord web
-# app in Iris's own Chrome profile - no API, no token. Off means the tool does
-# not exist. Claude, when it is on, only ever chooses a name and a message;
-# everything else is handled in Python and never reaches the model.
-DISCORD = _env("IRIS_DISCORD", "0") == "1"
-
-# Whether Discord's window is hidden off-screen while Iris works in it. On means
-# it lives past the edge of the screen - a real, undetectable Chrome, unlike
-# headless - and only comes into view for the one-time login. Off means you see
-# it work. If window positioning ever misbehaves it falls back to visible, so
-# this never stops a message being sent.
-DISCORD_HIDDEN = _env("IRIS_DISCORD_HIDDEN", "1") == "1"
-
 # --- the television --------------------------------------------------------
 # A Roku on the local network, reached over its External Control Protocol.
 # Nothing is installed on the television: every Roku serves this already. Off

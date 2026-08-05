@@ -120,6 +120,13 @@ def _launch_chrome() -> str | None:
         f"--remote-debugging-port={config.CDP_PORT}",
         "--no-first-run",
         "--no-default-browser-check",
+        # No "Chrome didn't shut down correctly - restore tabs?" bubble. Iris
+        # closes tabs and sometimes ends the process on the way out, and Chrome
+        # reads that as a crash on the next launch; this suppresses the prompt
+        # that would otherwise sit over the page.
+        "--disable-session-crashed-bubble",
+        "--hide-crash-restore-bubble",
+        "--disable-features=InfiniteSessionRestore",
     ]
     if not config.USE_REAL_CHROME_PROFILE:
         config.CHROME_PROFILE_DIR.mkdir(parents=True, exist_ok=True)

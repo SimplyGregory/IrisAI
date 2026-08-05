@@ -31,7 +31,6 @@ DEFAULTS = {
     "vscode": False,
     "roku": False,
     "roku_ip": "",
-    "discord": False,
 }
 
 MODELS = [
@@ -115,22 +114,6 @@ IRIS_CDP_PORT={c["cdp_port"]}
 # 0 = off, and the two VS Code tools are not loaded at all - so they cost
 #     nothing on a machine that does not use them.
 IRIS_VSCODE={1 if c["vscode"] else 0}
-
-
-# --- Discord ---------------------------------------------------------------
-# 1 = the discord_send tool is available. It drives the real Discord web app in
-#     Iris's own browser profile - no API and no token. You sign in once, in a
-#     window that opens for it, and the session is remembered.
-# 0 = off, and the tool is not loaded at all.
-# Automating your own account is discouraged by Discord's terms; it is meant
-# for the odd personal message, not bulk sending.
-IRIS_DISCORD={1 if c["discord"] else 0}
-
-# 1 = keep Discord's window off-screen while Iris works in it, in view only for
-#     the one-time login. A real, undetectable Chrome - not headless. If window
-#     positioning ever misbehaves it stays visible rather than dropping a
-#     message, and you can set this to 0 to always see it.
-IRIS_DISCORD_HIDDEN=1
 
 
 # --- Television ------------------------------------------------------------
