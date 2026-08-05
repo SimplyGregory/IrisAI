@@ -614,6 +614,23 @@ class Api:
             return
 
         if self._busy.locked():
+            # A confirmation waiting on screen is ANSWERED by what you say next,
+            # not cancelled by it. Saying "yes" or re-asking for the thing
+            # answers the card; a real "no" cancels the action. Anything that is
+            # not an answer leaves the card up with a nudge, rather than letting
+            # it be silently rejected - which is what turned "shut down" followed
+            # by "shut yourself down please" into a self-cancelling loop: the
+            # second message barged in and declined the first one's confirmation.
+            if self._pending:
+                if self._answer_waiting(text):
+                    self._push(type="said", text=text)
+                    return
+                self._push(
+                    type="note",
+                    text="There's a confirmation waiting - answer yes, no, or always.",
+                )
+                self._push(type="said", text=text)
+                return
             self._barge_in(text)
             return
 
