@@ -112,12 +112,12 @@ _PUBLIC_URL_PARAMS = frozenset(
 def _luhn_ok(text: str) -> bool:
     """True if these digits satisfy the Luhn checksum, as every real card does.
 
-    Without this, any long digit run reads as a card number. Discord registers
-    protocol handlers named discord-<18 digit app id>, and redacting those turns
-    a usable deep link into "discord-[card number 1]". Luhn never rejects a
-    genuine card - the checksum is part of the format - so this only removes
-    false positives, and it lets the pattern widen to 13 digits to cover Amex
-    and short Visa numbers that were previously missed entirely.
+    Without this, any long digit run reads as a card number. Some apps register
+    protocol handlers named app-<18 digit id>, and redacting those turns a usable
+    deep link into "app-[card number 1]". Luhn never rejects a genuine card - the
+    checksum is part of the format - so this only removes false positives, and it
+    lets the pattern widen to 13 digits to cover Amex and short Visa numbers that
+    were previously missed entirely.
     """
     digits = [int(c) for c in text if c.isdigit()]
     if not 13 <= len(digits) <= 19:

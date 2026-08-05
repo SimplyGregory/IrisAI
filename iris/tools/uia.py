@@ -14,7 +14,7 @@ object or the names needed to find one again.
 Some apps expose almost nothing either way:
 
     VS Code (Electron)        11 controls,   4 named, 0.1s   - window chrome only
-    Discord, Slack (Electron) the same
+    Slack (Electron)          the same
     File Explorer            hundreds, fully named
 
 Electron hides its tree on both platforms, so for those fall back to the app's
@@ -42,7 +42,7 @@ def ui_inspect(window_title: str, filter_text: str = "", max_results: int = 50) 
     on them directly. Try this before taking a screenshot.
 
     If it returns almost nothing but the window buttons, the app is probably
-    Electron-based (VS Code, Discord, Slack) and hides its accessibility tree.
+    Electron-based (VS Code, Slack) and hides its accessibility tree.
     In that case use the app's command line if it has one, or fall back to
     screenshot and screen_click.
 
@@ -92,7 +92,7 @@ def ui_inspect(window_title: str, filter_text: str = "", max_results: int = 50) 
     if not lines or chrome_only:
         return (
             f"{window_title!r} exposes no usable controls - only window buttons. It is "
-            "almost certainly an Electron app (VS Code, Discord, Slack) that hides its "
+            "almost certainly an Electron app (VS Code, Slack) that hides its "
             "accessibility tree. Do not keep retrying this tool. Use the app's command "
             "line if it has one, or fall back to screenshot and screen_click."
         )

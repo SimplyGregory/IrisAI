@@ -16,8 +16,7 @@ sit unnoticed until the first build.
 On the install location: Program Files needs administrator rights, and would
 still be unwritable afterwards for a normally-launched process - which is fatal
 here, because the memory file is rewritten on every saved memory. So the
-default is under LOCALAPPDATA, where VS Code and Discord put themselves for the
-same reason.
+default is under LOCALAPPDATA, where VS Code puts itself for the same reason.
 """
 
 import os
