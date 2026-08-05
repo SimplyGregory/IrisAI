@@ -24,6 +24,23 @@ import time
 APP_URL = "https://discord.com/channels/@me"
 LOGIN_URL = "https://discord.com/login"
 
+# Where Discord's own window sits. Off-screen means invisible but still a real,
+# rendered, undetectable Chrome - unlike headless, which advertises itself. On
+# a normal desktop nothing lives at -32000; a window there is simply not seen.
+_OFFSCREEN = {"left": -32000, "top": -32000, "width": 1280, "height": 900}
+_ONSCREEN = {"left": 80, "top": 80, "width": 1120, "height": 840}
+
+# Discord's own page, kept apart from browser._page so that hiding Discord's
+# window never hides - or is polluted by - Iris's ordinary browsing, which
+# lives in its own window in the same Chrome.
+_dpage = None
+
+
+def _hidden() -> bool:
+    from iris import config
+
+    return config.DISCORD_HIDDEN
+
 
 class DiscordUnavailable(Exception):
     """Chrome is not up, or Discord would not load."""
@@ -44,29 +61,82 @@ def _reset() -> None:
     the cache makes _ensure_page relaunch cleanly, and the profile persists, so
     the relaunched Chrome is still logged in.
     """
+    global _dpage
     from iris.tools import browser
 
     browser._playwright = browser._browser = browser._page = browser._launched = None
+    _dpage = None
+
+
+def _position(page, visible: bool) -> None:
+    """Move Discord's window on- or off-screen. Cosmetic and best-effort.
+
+    Wrapped so a failure here can never stop a send: if the window will not
+    move, it just stays where it is - visible, which is the old behaviour - and
+    the message still goes. Invisibility is a nicety; delivering is the job.
+    """
+    try:
+        session = page.context.new_cdp_session(page)
+        window = session.send("Browser.getWindowForTarget")
+        session.send("Browser.setWindowBounds", {
+            "windowId": window["windowId"],
+            "bounds": _ONSCREEN if visible else _OFFSCREEN,
+        })
+    except Exception:
+        pass
 
 
 def _page():
-    """Discord's tab in Iris's own Chrome, opened if it is not already there.
+    """Discord's page, in its own window, off-screen when hiding is on.
 
-    Tries twice: if the browser was closed between calls, the first attempt
-    throws, the connection is reset, and the second relaunches it.
+    Its own window on purpose: Iris's ordinary browsing has one too, in the same
+    Chrome, and pushing Discord out of sight must not take that with it. If a
+    separate window cannot be made, it falls back to a plain tab - hidden or not,
+    Discord still has somewhere to work.
+
+    Tries twice, because closing the window kills the connection and the first
+    call then throws; the second relaunches against the persistent profile.
     """
+    global _dpage
     from iris.tools import browser
 
     for attempt in range(2):
-        page = browser._ensure_page()
-        if isinstance(page, str):
-            raise DiscordUnavailable(page)
+        main = browser._ensure_page()
+        if isinstance(main, str):
+            raise DiscordUnavailable(main)
+
         try:
-            if "discord.com" not in (page.url or ""):
-                page.goto(APP_URL, wait_until="domcontentloaded", timeout=30000)
-                time.sleep(2)  # the SPA needs a moment to draw after the document lands
-            return page
+            if _dpage is not None and not _dpage.is_closed():
+                # Reposition on reuse too, so the window that came on-screen for
+                # login goes back out of sight once past it. Skipped while still
+                # on the login page - that is the one time it should stay visible.
+                if _hidden() and "/login" not in (_dpage.url or ""):
+                    _position(_dpage, visible=False)
+                return _dpage
+
+            context = main.context
+            before = set(context.pages)
+
+            # A window of its own via CDP. newWindow is what keeps it apart from
+            # the browsing window; a plain new_page would land beside those tabs.
+            try:
+                context.browser.new_browser_cdp_session().send(
+                    "Target.createTarget", {"url": APP_URL, "newWindow": True}
+                )
+                time.sleep(1.0)
+            except Exception:
+                pass
+
+            fresh = [p for p in context.pages if p not in before]
+            _dpage = fresh[-1] if fresh else context.new_page()
+            if "discord.com" not in (_dpage.url or ""):
+                _dpage.goto(APP_URL, wait_until="domcontentloaded", timeout=30000)
+            time.sleep(2)  # the SPA needs a moment to draw
+
+            _position(_dpage, visible=not _hidden())
+            return _dpage
         except Exception as exc:  # noqa: BLE001 - usually TargetClosedError
+            _dpage = None
             if attempt == 0:
                 _reset()
                 continue
@@ -132,6 +202,11 @@ def open_login() -> bool:
     page = _page()
     if logged_in(page):
         return True
+    # Nobody can type a password into a window off the edge of the screen, so
+    # for login it comes into view - then the watcher puts it back out of sight
+    # once the redirect says signing in worked.
+    if _hidden():
+        _position(page, visible=True)
     page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
     _start_login_watcher()
     return False
@@ -176,6 +251,11 @@ def _start_login_watcher(timeout: float = 300.0) -> None:
                         urllib.request.urlopen(base + "/json/close/" + target["id"], timeout=3).read()
                     except Exception:
                         pass
+            # The window is left as it is - still the logged-in one _dpage points
+            # to. It is put back out of sight by the next _page call on the main
+            # thread, which is the only place the Playwright connection may be
+            # touched. Moving a window needs that connection; closing a tab, done
+            # above, does not.
             return
 
     threading.Thread(target=watch, name="iris-discord-login", daemon=True).start()

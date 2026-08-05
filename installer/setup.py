@@ -126,6 +126,12 @@ IRIS_VSCODE={1 if c["vscode"] else 0}
 # for the odd personal message, not bulk sending.
 IRIS_DISCORD={1 if c["discord"] else 0}
 
+# 1 = keep Discord's window off-screen while Iris works in it, in view only for
+#     the one-time login. A real, undetectable Chrome - not headless. If window
+#     positioning ever misbehaves it stays visible rather than dropping a
+#     message, and you can set this to 0 to always see it.
+IRIS_DISCORD_HIDDEN=1
+
 
 # --- Television ------------------------------------------------------------
 # 1 = a Roku on the local network is connected, so Iris can open channels,
