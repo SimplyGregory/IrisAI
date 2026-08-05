@@ -124,16 +124,61 @@ def status() -> bool:
 def open_login() -> bool:
     """Bring up the visible login page if needed. Returns whether already in.
 
-    Deliberately does not wait. A tool that blocks for three minutes freezes
-    the whole turn; instead this opens the window and returns, and the user
-    saying "done" is what moves things on. Chrome is already a visible window,
-    so there is nothing to reveal - the page just needs loading.
+    Does not block the turn - it opens the page, starts a watcher, and returns.
+    The watcher notices the moment the login page redirects to the logged-in URL
+    and closes the login tab itself, so the user does not have to say "done" for
+    the clutter to clear.
     """
     page = _page()
     if logged_in(page):
         return True
     page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
+    _start_login_watcher()
     return False
+
+
+def _start_login_watcher(timeout: float = 300.0) -> None:
+    """Watch for the login redirect and close the login tab when it happens.
+
+    Over Chrome's DevTools HTTP endpoint, not Playwright: /json lists the tabs
+    and /json/close ends one, and being plain HTTP it can run from this daemon
+    thread without touching the Playwright connection, which is not safe to use
+    off its own thread. Signing in redirects discord.com/login to
+    discord.com/channels/@me; the instant a tab shows that, the login and any
+    blank tabs are closed and the app tab is kept.
+    """
+    import json
+    import threading
+    import urllib.request
+
+    from iris import config
+
+    base = f"http://127.0.0.1:{config.CDP_PORT}"
+
+    def watch():
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            time.sleep(1.5)
+            try:
+                targets = json.loads(urllib.request.urlopen(base + "/json", timeout=3).read())
+            except Exception:
+                continue
+            pages = [t for t in targets if t.get("type") == "page"]
+            app = [t for t in pages if "discord.com/channels" in (t.get("url") or "")]
+            if not app:
+                continue  # still on the login page, or still signing in
+            keep = app[0]["id"]
+            for target in pages:
+                url = target.get("url") or ""
+                stray = "discord.com/login" in url or url in ("about:blank", "chrome://newtab/", "")
+                if target["id"] != keep and stray:
+                    try:
+                        urllib.request.urlopen(base + "/json/close/" + target["id"], timeout=3).read()
+                    except Exception:
+                        pass
+            return
+
+    threading.Thread(target=watch, name="iris-discord-login", daemon=True).start()
 
 
 # --- reading names off the page --------------------------------------------
