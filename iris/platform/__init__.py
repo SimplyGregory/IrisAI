@@ -73,8 +73,7 @@ bridge_address = _impl.bridge_address        # where the VS Code bridge listens
 # that, or they would need a platform check at every call site.
 permissions_missing = _impl.permissions_missing
 kill_process_tree = _impl.kill_process_tree  # end a process and its children
-hide_offscreen_window = _impl.hide_offscreen_window  # hide a parked window from the taskbar
-show_window = _impl.show_window
+focus_process_window = _impl.focus_process_window  # raise a process's window to the front
 
 # Windows and screen furniture.
 list_windows = _impl.list_windows          # every visible window
@@ -97,7 +96,7 @@ __all__ = [
     "shell_argv", "quiet_process", "speak_native", "list_voices",
     "default_install_dir", "launch", "open_url", "create_shortcut", "theme",
     "bridge_address", "permissions_missing", "kill_process_tree",
-    "hide_offscreen_window", "show_window",
+    "focus_process_window",
     "list_windows", "window_action", "active_window_title", "open_window_titles",
     "list_apps", "ui_elements", "ui_do",
 ]

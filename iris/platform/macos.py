@@ -163,14 +163,19 @@ def bridge_address() -> str:
 
 # --- the permissions that make everything else work ------------------------
 
-def hide_offscreen_window():
-    """No taskbar to clear here. An off-screen Chrome on a Mac is a dock and
-    mission-control matter, left for when the port is actually run."""
-    return None
+def focus_process_window(pid: int) -> bool:
+    """Bring a window owned by this process to the foreground.
 
-
-def show_window(handle) -> None:
-    return None
+    The Windows version has to fight the focus rules; here `open` and AppleScript
+    both raise an app cleanly. The process id is turned into an application to
+    activate through System Events, which is the same interface the window tools
+    above use. Returns whether it was raised.
+    """
+    ok, _ = _osascript(
+        'tell application "System Events" to set frontmost of '
+        f'(first process whose unix id is {int(pid)}) to true'
+    )
+    return ok
 
 
 def kill_process_tree(pid: int) -> None:

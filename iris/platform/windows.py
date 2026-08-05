@@ -343,52 +343,60 @@ def kill_process_tree(pid: int) -> None:
     )
 
 
-def hide_offscreen_window():
-    """Hide the window parked far off-screen, taskbar entry and all.
+def focus_process_window(pid: int) -> bool:
+    """Bring a window owned by this process to the foreground.
 
-    Off-screen positioning leaves a taskbar button; SW_HIDE takes the window off
-    the screen, the taskbar and Alt-Tab entirely. Automation over CDP keeps
-    working on a hidden window - it drives the page, not the paint.
+    A Chrome that Iris launched, or one already running behind her panel, opens
+    without focus: Windows will not let a background process pull a window in
+    front of whatever the user is looking at, so the tab loads out of sight.
+    page.bring_to_front() selects the right tab but does nothing to the window
+    around it; this raises the window itself.
 
-    Found by position, not by class or title: the caller has just moved its own
-    window to around -32000, where nothing legitimate ever sits, so a window
-    there is unambiguously the one to hide - never the user's real browser,
-    which class-name matching would have risked. Returns a handle to show it
-    again, or None if none was found.
+    Found by owning process, not by title or class, so it can never grab the
+    wrong window - a Chrome-class window belongs to VS Code and Slack too.
+    SetForegroundWindow is refused unless the caller is already the foreground
+    process, so the foreground thread's input is briefly attached to ours, which
+    is the documented way to be allowed. Returns whether a window was raised.
     """
     import ctypes
     from ctypes import wintypes
 
     user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
     found = []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
     def visit(hwnd, _lparam):
-        if user32.IsWindowVisible(hwnd):
-            rect = wintypes.RECT()
-            if user32.GetWindowRect(hwnd, ctypes.byref(rect)) and rect.left <= -20000:
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        # Only top-level windows with a title bar: skips the tool/console
+        # windows a process also owns, leaving the real browser window.
+        if owner.value == pid and user32.GetWindow(hwnd, 4) == 0:  # GW_OWNER
+            if user32.GetWindowTextLengthW(hwnd) > 0:
                 found.append(hwnd)
         return True
 
     try:
         user32.EnumWindows(visit, 0)
-        for hwnd in found:
-            user32.ShowWindow(hwnd, 0)  # SW_HIDE
+        if not found:
+            return False
+        hwnd = found[0]
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE - in case it is minimized
+
+        foreground = user32.GetForegroundWindow()
+        our_thread = kernel32.GetCurrentThreadId()
+        fg_thread = user32.GetWindowThreadProcessId(foreground, None)
+        user32.AttachThreadInput(fg_thread, our_thread, True)
+        try:
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+        finally:
+            user32.AttachThreadInput(fg_thread, our_thread, False)
+        return True
     except Exception:
-        return None
-    return found[0] if found else None
-
-
-def show_window(handle) -> None:
-    """Bring a previously hidden window back, e.g. for a login it must show."""
-    if handle is None:
-        return
-    try:
-        import ctypes
-
-        ctypes.windll.user32.ShowWindow(handle, 5)  # SW_SHOW
-    except Exception:
-        pass
+        return False
 
 
 def permissions_missing() -> list[str]:

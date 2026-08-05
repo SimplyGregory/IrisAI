@@ -222,6 +222,24 @@ def _settle(page) -> None:
         page.wait_for_timeout(1200)
 
 
+def _surface() -> None:
+    """Raise Iris's own Chrome window so an opened page is actually seen.
+
+    Only for the Chrome this session launched - the isolated profile Iris owns.
+    In real-profile mode she is attached to the user's Chrome, which is already
+    their visible window and should not be yanked to the front from under them;
+    page.bring_to_front() has selected the right tab there and that is enough.
+    """
+    if _launched is None:
+        return
+    try:
+        from iris import platform
+
+        platform.focus_process_window(_launched.pid)
+    except Exception:
+        pass
+
+
 def _adopt_newest_tab(page):
     """If an action opened a new tab, switch to it."""
     global _page
@@ -294,6 +312,7 @@ def browser_open(url: str, new_tab: bool = False) -> str:
         page.bring_to_front()
     except Exception:
         pass
+    _surface()
     return f"Opened {page.url}\nPage title: {page.title()}\nCall browser_snapshot to see what is on the page."
 
 
